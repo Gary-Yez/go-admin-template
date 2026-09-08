@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"gitee.com/mxcker/go-admin-template/server/modules"
+	"github.com/Gary-Yez/go-admin"
+	"github.com/Gary-Yez/go-admin-template/modules"
 	"os"
 )
 

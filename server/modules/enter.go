@@ -1,8 +1,8 @@
 package modules
 
 import (
-	"gitee.com/mxcker/go-admin"
-	"gitee.com/mxcker/go-admin-template/server/modules/test"
+	"github.com/Gary-Yez/go-admin"
+	"github.com/Gary-Yez/go-admin-template/modules/test"
 )
 
 func Init() {
