@@ -11,6 +11,11 @@ import "./assets/css/global.less"
 import "./assets/css/theme.less"
 import * as ElementPlusIconsVue from "@element-plus/icons-vue"
 
+import {readRememberedUsername} from "./utils/rememberAccount.ts";
+
+// 已登录用户也需要在启动时清除旧版本的明文密码缓存。
+readRememberedUsername()
+
 const pinia = createPinia()
 const app = createApp(App)
 

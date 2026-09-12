@@ -8,8 +8,14 @@ export const SysRoleApi  = {
             }
         });
     },
-    List(){
-        return request.get("/sys_role/list");
+    List(query:{page:number;limit:number;sorts:{field:string;order:string}[]}){
+        return request.get("/sys_role/list", {
+            params:{...query,sorts:query.sorts.map(sort=>JSON.stringify(sort))},
+            paramsSerializer:{indexes:null},
+        });
+    },
+    Copy(id:number,name:string){
+        return request.post("/sys_role/copy",{id,name});
     },
     Create(formData:any){
         return request.post("/sys_role/create",formData);
@@ -22,9 +28,10 @@ export const SysRoleApi  = {
             ids
         });
     },
-    UpdatePermission(roleId:number,menuIds:Array<any>,apis:Array<any>){
+    UpdatePermission(roleId:number,menuIds:Array<any>,apis:Array<any>,defaultMenu:string){
         return request.post("/sys_role/permission",{
             id:roleId,
+            default_menu:defaultMenu,
             menus:menuIds.map(item=>({
                 id:item
             })),

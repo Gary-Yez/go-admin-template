@@ -4,13 +4,6 @@ export const SysCronJobApi = {
     GetRegisteredHandler(){
         return request.get("/sys_cron_job/get_handlers");
     },
-    Get(id:number){
-        return request.get("/sys_cron_job/get",{
-            params:{
-                id:id
-            }
-        });
-    },
     List(query:any){
         return request.post("/sys_cron_job/list",query);
     },

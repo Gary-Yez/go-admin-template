@@ -1,170 +1,197 @@
 <template>
-  <el-card shadow="never">
-    <el-page-header v-loading="submitLoading" @back="$router.go(-1)">
-      <template #content>个人信息</template>
-      <div class="p-[15px]">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-card>
-              <div class="text-center">
-                <el-avatar :src="userStore.UserData.avatar || '/img/user.png'" :size="100"></el-avatar>
-                <div class="text-[18px] my-[15px] font-bold">{{ userStore.UserData.username }}</div>
-              </div>
-              <el-descriptions title="详细信息" :column="1" border size="large">
-                <el-descriptions-item label="昵称">{{ userStore.UserData.nickname }}</el-descriptions-item>
-                <el-descriptions-item label="角色"><el-tag>{{ userStore.UserData.role?.name }}</el-tag></el-descriptions-item>
-                <el-descriptions-item label="手机号">{{ userStore.UserData.phone }}</el-descriptions-item>
-                <el-descriptions-item label="邮箱">{{ userStore.UserData.email }}</el-descriptions-item>
-              </el-descriptions>
-            </el-card>
-          </el-col>
-          <el-col :span="16">
-            <el-card>
-              <el-tabs @tab-change="handleChangeTab">
-                <el-tab-pane label="基本信息" >
-                  <el-form :model="userInfoForm" ref="userinfoRef" label-position="top" size="large">
-                    <el-form-item label="昵称" prop="nickname" :rules="[{required:true,message:'请输入昵称'}]">
-                      <el-input v-model="userInfoForm.nickname" placeholder="请输入昵称"></el-input>
-                    </el-form-item>
-                    <el-form-item label="手机号" prop="phone" :rules="[{required:true,message:'请输入手机号'}]">
-                      <el-input v-model="userInfoForm.phone" placeholder="请输入手机号"></el-input>
-                    </el-form-item>
-                    <el-form-item label="邮箱" prop="email" :rules="[{required:true,message:'请输入邮箱'}]">
-                      <el-input v-model="userInfoForm.email" placeholder="请输入邮箱"></el-input>
-                    </el-form-item>
-                    <div class="mt-[30px]">
-                      <el-button type="primary" @click="handleChangeUserInfo">保存</el-button>
-                    </div>
-                  </el-form>
-                </el-tab-pane>
-                <el-tab-pane label="修改密码">
-                  <el-form :model="passwordForm" ref="passwordRef" label-position="top" size="large">
-                    <el-form-item label="旧密码" prop="old_password" :rules="[{required:true,message:'请输入旧密码'}]">
-                      <el-input v-model="passwordForm.old_password" placeholder="请输入旧密码"></el-input>
-                    </el-form-item>
-                    <el-form-item label="新密码" prop="new_password" :rules="[{required:true,message:'请输入新密码'},{min:6,max:32,message: '密码长度必须要6-32位'}]">
-                      <el-input v-model="passwordForm.new_password" placeholder="请输入新密码"></el-input>
-                    </el-form-item>
-                    <el-form-item label="确认密码" prop="confirm_password" :rules="[{required:true,message:'请确认密码'},{min:6,max:32,message: '密码长度必须要6-32位'}]">
-                      <el-input v-model="passwordForm.confirm_password" placeholder="请确认密码"></el-input>
-                    </el-form-item>
-                    <div class="mt-[30px]">
-                      <el-button type="primary" @click="handleChangePassword">确认修改</el-button>
-                    </div>
-                  </el-form>
-                </el-tab-pane>
-                <el-tab-pane label="API密钥">
-                  <div v-if="userStore.UserData.api_token">
-                    <el-input class="my-[20px]" v-model="userStore.UserData.api_token" size="large" disabled></el-input>
-                    <el-row :gutter="20" class="mb-[15px]">
-                      <el-col :span="12">
-                        <el-button class="w-full" size="large" type="primary" :loading="submitLoading" @click="handleResetApiToken">重置API密钥</el-button>
-                      </el-col>
-                      <el-col :span="12">
-                        <el-button class="w-full" size="large" type="success" :loading="submitLoading" @click="handleCopyApiToken">复制密钥</el-button>
-                      </el-col>
-                    </el-row>
-                    <el-alert type="warning" :closable="false">重置密钥后，旧的API密钥有效时间为一小时</el-alert>
-                  </div>
-                  <div v-else>
-                    <el-empty description="暂无API密钥，点击下方按钮生成">
-                      <template #default>
-                        <el-button size="large" type="primary" :loading="submitLoading" @click="handleResetApiToken">生成API密钥</el-button>
-                      </template>
-                    </el-empty>
-                  </div>
-                </el-tab-pane>
-              </el-tabs>
-            </el-card>
-          </el-col>
-        </el-row>
-      </div>
-    </el-page-header>
-  </el-card>
+  <div class="profile-page">
+    <el-card class="profile-title" shadow="never">
+      <PageHeader title="个人信息" description="管理你的账号资料、安全设置与联系方式" />
+    </el-card>
+    <div class="profile-layout">
+      <el-card class="profile-card" shadow="never">
+        <div class="profile-identity">
+          <el-avatar :src="userStore.UserData.avatar || '/img/user.png'" :size="112" />
+          <div class="profile-name">
+            <h3>{{ userStore.UserData.nickname || userStore.UserData.username }}</h3>
+            <el-button text :icon="EditPen" aria-label="修改昵称" @click="openInfo('nickname')" />
+          </div>
+          <el-tag v-if="userStore.UserData.role?.name" type="primary" effect="light">{{ userStore.UserData.role.name }}</el-tag>
+        </div>
+        <dl class="profile-details">
+          <div><el-icon><User /></el-icon><dt>登录账号</dt><dd>{{ userStore.UserData.username || '未设置' }}</dd></div>
+          <div><el-icon><Phone /></el-icon><dt>手机号码</dt><dd>{{ userStore.UserData.phone || '未设置' }}</dd></div>
+          <div><el-icon><Message /></el-icon><dt>邮箱地址</dt><dd>{{ userStore.UserData.email || '未设置' }}</dd></div>
+        </dl>
+      </el-card>
+      <el-card class="settings-card" shadow="never">
+        <template #header><h3>账号资料设置</h3><p>统一管理联系方式与账号密码</p></template>
+        <div class="setting-row">
+          <div class="setting-label"><h4>头像</h4><p>用于系统内个人资料展示</p></div>
+          <div class="setting-value"><el-avatar :src="userStore.UserData.avatar || '/img/user.png'" :size="36" /></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label"><h4>昵称</h4><p>用于系统内显示的个人名称</p></div>
+          <div class="setting-value">{{ userStore.UserData.nickname || '未设置' }}</div>
+          <el-button @click="openInfo('nickname')">修改昵称</el-button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label"><h4>手机号码</h4><p>保持你的联系方式为最新状态</p></div>
+          <div class="setting-value">{{ userStore.UserData.phone || '未设置' }}</div>
+          <el-button @click="openInfo('phone')">修改手机</el-button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label"><h4>邮箱地址</h4><p>管理账号的联系邮箱</p></div>
+          <div class="setting-value">{{ userStore.UserData.email || '未设置' }}</div>
+          <el-button @click="openInfo('email')">修改邮箱</el-button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label"><h4>账号密码</h4><p>修改成功后，需要重新登录</p></div>
+          <div class="setting-value password-value">••••••••</div>
+          <el-button @click="openPassword">修改密码</el-button>
+        </div>
+      </el-card>
+    </div>
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="460px" class="profile-dialog" :before-close="closeDialog" :close-on-click-modal="false" destroy-on-close @closed="clearForms">
+      <el-form v-if="dialog === 'info'" ref="infoRef" :model="infoForm" label-position="top" :disabled="submitting" @submit.prevent="saveInfo">
+        <el-form-item :label="fieldLabels[infoField]" :prop="infoField" :rules="[{required:true,message:'请输入' + fieldLabels[infoField],trigger:'blur'}]">
+          <el-input size="large" v-model="infoForm[infoField]" :placeholder="'请输入' + fieldLabels[infoField]" />
+        </el-form-item>
+      </el-form>
+      <el-form v-else-if="dialog === 'password'" ref="passwordRef" :model="passwordForm" label-position="top" :disabled="submitting" @submit.prevent="savePassword">
+        <el-form-item label="旧密码" prop="old_password" :rules="[{required:true,message:'请输入旧密码',trigger:'blur'}]">
+          <el-input size="large" v-model="passwordForm.old_password" type="password" show-password autocomplete="current-password" placeholder="请输入旧密码" />
+        </el-form-item>
+        <el-form-item label="新密码" prop="new_password" :rules="passwordRules">
+          <el-input size="large" v-model="passwordForm.new_password" type="password" show-password autocomplete="new-password" :placeholder="passwordHint" />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirm_password" :rules="[{required:true,message:'请再次输入新密码',trigger:'blur'},{validator:validatePassword,trigger:'blur'}]">
+          <el-input size="large" v-model="passwordForm.confirm_password" type="password" show-password autocomplete="new-password" placeholder="请再次输入新密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button :disabled="submitting" @click="closeDialog()">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="dialog === 'info' ? saveInfo() : savePassword()">保存修改</el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
-  import {useUserStore} from "../../../stores/user.ts";
-  import {ref} from "vue";
-  import {SysAuthApi} from "../../apis/sys_auth.ts";
+import {usePasswordPolicy} from "../../../utils/passwordPolicy.ts";
+import PageHeader from "../../../components/core/PageHeader.vue";
+  import {computed, ref} from "vue";
   import {ElMessage} from "element-plus";
-  import {copyText} from "../../../utils/utils.ts";
-  const submitLoading = ref(false);
-  const userinfoRef = ref()
-  const passwordRef = ref()
+  import type {FormInstance} from "element-plus";
+  import {EditPen, Message, Phone, User} from "@element-plus/icons-vue";
+  import {useUserStore} from "../../../stores/user.ts";
+  import {SysAuthApi} from "../../apis/sys_auth.ts";
+
   const userStore = useUserStore()
-  const initUserForm = ()=>{
-    return {
-      nickname:userStore.UserData.nickname,
-      phone:userStore.UserData.phone,
-      email:userStore.UserData.email,
-    }
+  const {hint:passwordHint, rules:passwordRules, load:loadPasswordPolicy} = usePasswordPolicy()
+  const dialog = ref<'info' | 'password'>('info')
+  const dialogVisible = ref(false)
+  const submitting = ref(false)
+  const fieldLabels = {nickname:'昵称',phone:'手机号码',email:'邮箱地址'}
+  const infoField = ref<keyof typeof fieldLabels>('nickname')
+  const infoRef = ref<FormInstance>()
+  const passwordRef = ref<FormInstance>()
+  const infoForm = ref({nickname:'',phone:'',email:''})
+  const newPasswordForm = ()=>({old_password:'',new_password:'',confirm_password:''})
+  const passwordForm = ref(newPasswordForm())
+  const dialogTitle = computed(()=>dialog.value === 'info' ? '修改' + fieldLabels[infoField.value] : '修改密码')
+  const openInfo = (field:keyof typeof fieldLabels)=>{
+    infoForm.value = {nickname:userStore.UserData.nickname || '',phone:userStore.UserData.phone || '',email:userStore.UserData.email || ''}
+    infoField.value = field
+    dialog.value = 'info'
+    dialogVisible.value = true
   }
-  const initPasswordForm = ()=>{
-    return {
-      old_password:"",
-      new_password:"",
-      confirm_password:""
-    }
+  const openPassword = async ()=>{
+    try { await loadPasswordPolicy() }
+    catch { return }
+    passwordForm.value = newPasswordForm()
+    dialog.value = 'password'
+    dialogVisible.value = true
   }
-  const userInfoForm = ref(initUserForm())
-  const passwordForm = ref(initPasswordForm())
-
-  const handleChangeTab = ()=>{
-    userInfoForm.value = initUserForm()
-    passwordForm.value = initPasswordForm()
-    userinfoRef.value.resetFields()
-    passwordRef.value.resetFields()
+  const closeDialog = (done?:()=>void)=>{
+    if (submitting.value) return
+    dialogVisible.value = false
+    done?.()
   }
-
-  const handleChangeUserInfo = async () => {
-    await userinfoRef.value.validate()
-    submitLoading.value = true;
+  const clearForms = ()=>{ passwordForm.value = newPasswordForm(); infoRef.value?.clearValidate(); passwordRef.value?.clearValidate() }
+  const validatePassword = (_rule:unknown,value:string,callback:(error?:Error)=>void)=>{
+    callback(value !== passwordForm.value.new_password ? new Error('两次输入的密码不一致') : undefined)
+  }
+  const saveInfo = async ()=>{
+    if (submitting.value) return
+    submitting.value = true
     try {
-      let res = await SysAuthApi.ChangeInfo(userInfoForm.value)
-      ElMessage.success("修改成功")
+      if (!await infoRef.value?.validate().catch(()=>false)) return
+      await SysAuthApi.ChangeInfo({...infoForm.value})
       await userStore.getUserData()
-      console.log(res)
-    }catch (e) {
-      console.log(e)
-    }
-    submitLoading.value = false;
+      ElMessage.success('修改成功')
+      dialogVisible.value = false
+    } catch { /* 请求错误由拦截器统一提示。 */ }
+    finally { submitting.value = false }
   }
-
-  const handleChangePassword = async () => {
-    await passwordRef.value.validate()
-    submitLoading.value = true;
+  const savePassword = async ()=>{
+    if (submitting.value) return
+    submitting.value = true
     try {
-      let res = await SysAuthApi.ChangePassword(passwordForm.value)
-      console.log(res)
-      ElMessage.success("修改成功")
-      await userStore.logout()
-    }catch (e) {
-      console.log(e)
-    }
-    submitLoading.value = false;
-  }
-
-  const handleResetApiToken = async () => {
-    submitLoading.value = true;
-    try {
-      const response = await SysAuthApi.ResetApiToken()
-      userStore.UserData.api_token = response.data.api_token
-      ElMessage.success("生成成功")
-    }catch (e) {
-      console.log(e)
-    }
-    submitLoading.value = false;
-  }
-
-  const handleCopyApiToken = () => {
-    copyText(userStore.UserData.api_token || "")
+      if (!await passwordRef.value?.validate().catch(()=>false)) return
+      const response = await SysAuthApi.ChangePassword({...passwordForm.value})
+      userStore.setAccessToken(response.data.token)
+      dialogVisible.value = false
+      ElMessage.success('密码已修改，其他登录已失效')
+    } catch { /* 请求错误由拦截器统一提示。 */ }
+    finally { submitting.value = false }
   }
 </script>
 
 <style scoped lang="less">
-.cell-item {
-  display: flex;
-  align-items: center;
+.profile-page { width: 100%; }
+.profile-title {
+  margin-bottom: 12px;
+  :deep(.el-card__body) { padding: 16px 20px; }
+}
+.profile-layout { display: grid; grid-template-columns: minmax(250px, 1fr) minmax(0, 2fr); gap: 12px; align-items: stretch; }
+.profile-card, .settings-card, .profile-title { border-radius: 6px; }
+.profile-card :deep(.el-card__body) { padding: 20px; }
+.profile-identity { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 0 22px; }
+.profile-name {
+  display: flex; align-items: center; justify-content: center; gap: 4px; max-width: 100%;
+  h3 { margin: 0; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; color: var(--el-text-color-primary); }
+  .el-button { padding: 4px; height: auto; color: var(--el-text-color-secondary); }
+}
+.profile-details {
+  margin: 0; border-top: 1px solid var(--el-border-color-lighter);
+  > div { position: relative; padding: 18px 0 0 24px; }
+  .el-icon { position: absolute; top: 20px; left: 0; color: var(--el-text-color-placeholder); }
+  dt { color: var(--el-text-color-secondary); font-size: 13px; }
+  dd { margin: 6px 0 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; color: var(--el-text-color-primary); }
+}
+.settings-card {
+  min-width: 0;
+  :deep(.el-card__header) { padding: 16px 20px; }
+  :deep(.el-card__body) { padding: 0 20px; }
+  h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--el-text-color-primary); }
+  :deep(.el-card__header) p { margin: 8px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+}
+.setting-row {
+  display: grid; grid-template-columns: minmax(180px, 1fr) minmax(0, 1.2fr) auto; align-items: center; gap: 20px; min-height: 76px; padding: 14px 0; box-sizing: border-box; border-bottom: 1px solid var(--el-border-color-lighter);
+  &:last-child { border-bottom: 0; }
+  h4 { margin: 0; font-size: 14px; font-weight: 400; color: var(--el-text-color-primary); }
+  > .el-button { min-width: 88px; }
+}
+.setting-value { font-size: 14px; line-height: 1.6; color: var(--el-text-color-regular); overflow-wrap: anywhere; }
+.password-value { letter-spacing: 3px; }
+:deep(.profile-dialog) { max-width: calc(100vw - 32px); }
+@media (max-width: 900px) {
+  .profile-layout { grid-template-columns: minmax(0, 1fr); }
+  .profile-identity { padding-bottom: 16px; }
+  .profile-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+}
+@media (max-width: 580px) {
+  .profile-details { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .setting-row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 16px 0; }
+  .setting-label { grid-column: 1; }
+  .setting-value { grid-column: 1; grid-row: 2; }
+  .setting-row > .el-button { grid-column: 2; grid-row: 1 / 3; }
+  .settings-card :deep(.el-card__body) { padding: 0 16px; }
 }
 </style>

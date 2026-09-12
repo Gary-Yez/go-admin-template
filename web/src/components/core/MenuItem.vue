@@ -1,15 +1,15 @@
 <template>
-  <template v-for="menu in props.menus">
-    <el-menu-item v-if="!menu.hidden && !menu.children" :index="BuildMenuPath(menu)">
-      <el-icon v-if="menu.icon">
-        <iconify-icon :icon="menu.icon"></iconify-icon>
+  <template v-for="menu in props.menus" :key="BuildMenuPath(menu)">
+    <el-menu-item v-if="!menu.hidden && !menu.children?.length" :index="BuildMenuPath(menu)">
+      <el-icon>
+        <iconify-icon :icon="menu.icon || 'iconoir:view-grid'"></iconify-icon>
       </el-icon>
-      <span>{{ menu.name }}</span>
+      <template #title><span>{{ menu.name }}</span></template>
     </el-menu-item>
-    <el-sub-menu v-else-if="!menu.hidden" :index="BuildMenuPath(menu)">
+    <el-sub-menu v-else-if="!menu.hidden" :index="BuildMenuPath(menu)" popper-class="sidebar-menu-popper">
       <template #title>
         <el-icon>
-          <iconify-icon v-if="menu.icon" :icon="menu.icon"></iconify-icon>
+          <iconify-icon :icon="menu.icon || 'iconoir:view-grid'"></iconify-icon>
         </el-icon>
         <span>{{ menu.name }}</span>
       </template>

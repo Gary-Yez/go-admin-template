@@ -1,11 +1,28 @@
 <template>
-  <el-card class="container" shadow="never" v-loading="pageLoading">
-    <div class="mb-[10px] ">
-      <el-button type="primary" :loading="pageLoading" @click="getPageData">刷新</el-button>
-      <el-button type="primary" icon="Plus" @click="()=>handleAdd({})">新增管理员</el-button>
+  <el-card class="container" shadow="never">
+    <PageHeader title="管理员管理" description="管理账号资料、角色分配与登录状态" />
+    <el-form class="search-form" @submit.prevent="handleSearch">
+      <el-input v-model="searchForm.username" size="large" clearable placeholder="搜索用户名" @blur="handleSearch" />
+      <el-input v-model="searchForm.nickname" size="large" clearable placeholder="搜索昵称" @blur="handleSearch" />
+      <el-input v-model="searchForm.phone" size="large" clearable placeholder="搜索手机号" @blur="handleSearch" />
+      <el-input v-model="searchForm.email" size="large" clearable placeholder="搜索邮箱" @blur="handleSearch" />
+      <el-select v-model="searchForm.role_id" size="large" clearable filterable placeholder="全部角色" @change="handleSearch">
+        <el-option v-for="role in roles" :key="role.id" :value="role.id" :label="role.name" />
+      </el-select>
+      <el-select v-model="searchForm.status" size="large" clearable placeholder="全部状态" @change="handleSearch"><el-option label="启用" :value="1" /><el-option label="禁用" :value="0" /></el-select>
+      <el-button icon="RefreshLeft" @click="handleReset">重置</el-button>
+    </el-form>
+    <div v-if="listError" class="mb-[12px]">
+      <el-alert :title="listError" type="error" :closable="false" show-icon />
     </div>
-    <el-table :data="tableData">
-      <el-table-column label="编号" prop="id" :width="100"></el-table-column>
+    <ColumnTable @selection-change="handleSelectionChange" @sort-change="handleSortChange" storage-key="core/views/sys_admin/index:table-1" v-loading="pageLoading" size="large" :data="tableData">
+      <template #toolbar>
+        <el-button v-if="!selectedIds.length" icon="Refresh" :loading="pageLoading" @click="getPageData">刷新</el-button>
+        <el-button v-if="!selectedIds.length" type="primary" icon="Plus" :disabled="pageLoading || !!listError" @click="()=>handleAdd({})">新增管理员</el-button>
+        <el-button v-if="selectedIds.length" type="danger" icon="Delete" :disabled="pageLoading" @click="handleDelete([...selectedIds])">批量删除</el-button>
+      </template>
+      <el-table-column type="selection" :selectable="canDelete" width="48" />
+      <el-table-column label="编号" prop="id" sortable="custom" :width="100"></el-table-column>
       <el-table-column label="头像" prop="avatar" :width="100">
         <template #default="{ row }">
           <el-avatar :src="row.avatar || '/img/user.png'"></el-avatar>
@@ -15,28 +32,27 @@
       <el-table-column label="用户名" prop="username"></el-table-column>
       <el-table-column label="角色" prop="role">
         <template #default="{ row }">
-          <el-tag color="success">
-            {{ rolesMap[row.role_id] ? rolesMap[row.role_id].name : '' }}
-          </el-tag>
+          <div class="admin-roles"><el-tag v-for="role in row.roles" :key="role.id" :type="role.id === row.role_id ? 'primary' : 'info'">{{ role.name }}{{ role.id === row.role_id ? '（默认）' : '' }}</el-tag></div>
         </template>
       </el-table-column>
       <el-table-column label="手机号" prop="phone"></el-table-column>
       <el-table-column label="邮箱" prop="email"></el-table-column>
       <el-table-column label="状态" prop="status">
         <template #default="{ row }">
-          <el-switch v-model="row.status" :active-value="1" :inactive-value="0"  :before-change="()=>handleChangeSwitch(row,'status')"></el-switch>
+          <el-switch v-model="row.status" :disabled="row.id === userStore.UserData.id" :active-value="1" :inactive-value="0" :loading="row.loading" :before-change="()=>handleChangeSwitch(row,'status')"></el-switch>
         </template>
       </el-table-column>
-      <el-table-column label="操作" :width="160">
+      <el-table-column label="操作" :width="190" fixed="right" align="center">
         <template #default="{ row }">
-          <el-button-group class="table-btn-group">
-            <el-button type="primary" icon="Edit" text @click="()=>handleAdd(row)">修改</el-button>
-            <el-button type="danger" icon="Delete" text @click="()=>handleDelete([row.id])">删除</el-button>
-          </el-button-group>
+          <div class="table-btn-group">
+            <el-button type="primary" icon="Edit" plain size="small" @click="()=>handleAdd(row)">修改</el-button>
+            <el-button type="danger" icon="Delete" plain size="small" :disabled="!canDelete(row)" @click="()=>handleDelete([row.id])">删除</el-button>
+          </div>
         </template>
       </el-table-column>
-    </el-table>
-    <div class="mt-[15px] flex justify-center">
+    <template #empty><el-empty v-if="!pageLoading" :description="listError ? '加载失败，请刷新重试' : '暂无管理员'" :image-size="70" /></template>
+    </ColumnTable>
+    <div class="table-pagination">
       <el-pagination
           v-model:current-page="queryForm.page"
           v-model:page-size="queryForm.limit"
@@ -44,104 +60,125 @@
           background
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
-          @change="getPageData"
+          
       />
     </div>
-    <FormDialog v-model="dialogOpen" v-model:form="submitForm" :title="submitForm.id ? '修改管理员' : '新增管理员'" :on-confirm="handleSubmit">
+    <FormDialog description="配置账号资料与所属角色，默认角色用于登录。" note-icon="User" v-model="dialogOpen" v-model:form="submitForm" :title="submitForm.id ? '修改管理员' : '新增管理员'" :on-confirm="handleSubmit">
       <el-form-item label="用户名" prop="username" :rules="[{required:true,message:'用户名不能为空'}]">
-        <el-input v-model="submitForm.username" placeholder="请输入用户名"></el-input>
+        <el-input size="large" v-model="submitForm.username" placeholder="请输入用户名"></el-input>
       </el-form-item>
-      <el-form-item label="角色" prop="role_id" :rules="[{required:true,message:'请选择一个角色'}]">
-        <el-select v-model="submitForm.role_id" filterable>
-          <el-option v-for="role in roles" :value="role.id" :label="role.name" placeholder="请选择角色"></el-option>
+      <el-form-item label="角色" prop="role_ids" :rules="[{required:true,type:'array',min:1,message:'请至少选择一个角色'}]">
+        <el-select size="large" v-model="submitForm.role_ids" multiple filterable placeholder="请选择角色" @change="handleRolesChange">
+          <el-option v-for="role in roles" :key="role.id" :value="role.id" :label="role.name" placeholder="请选择角色"></el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="默认角色" prop="role_id" :rules="[{required:true,message:'请选择默认角色'}]">
+        <el-select size="large" v-model="submitForm.role_id" placeholder="登录时默认使用的角色">
+          <el-option v-for="role in selectedRoles" :key="role.id" :value="role.id" :label="role.name" />
         </el-select>
       </el-form-item>
       <el-form-item label="昵称" prop="nickname" :rules="[{required:true,message:'昵称不能为空'}]">
-        <el-input v-model="submitForm.nickname" placeholder="请输入昵称"></el-input>
+        <el-input size="large" v-model="submitForm.nickname" placeholder="请输入昵称"></el-input>
       </el-form-item>
       <el-form-item label="手机号" prop="phone" :rules="[{required:true,message:'手机号不能为空'}]">
-        <el-input v-model="submitForm.phone" placeholder="请输入手机号"></el-input>
+        <el-input size="large" v-model="submitForm.phone" placeholder="请输入手机号"></el-input>
       </el-form-item>
       <el-form-item label="邮箱" prop="email" :rules="[{required:true,message:'邮箱不能为空'}]">
-        <el-input v-model="submitForm.email" placeholder="请输入邮箱"></el-input>
+        <el-input size="large" v-model="submitForm.email" placeholder="请输入邮箱"></el-input>
       </el-form-item>
-      <el-form-item label="密码" prop="password" :rules="[{required:!submitForm.id,message:'密码不能为空'}]">
-        <el-input v-model="submitForm.password" :placeholder="submitForm.id ? `无需重置密码可不填` : `请输入密码`"></el-input>
+      <el-form-item label="密码" prop="password" :rules="passwordRules">
+        <el-input size="large" type="password" show-password autocomplete="new-password" v-model="submitForm.password" :placeholder="submitForm.id ? `留空不修改；${passwordHint}` : passwordHint"></el-input>
       </el-form-item>
     </FormDialog>
   </el-card>
 </template>
 
 <script setup lang="ts">
+import {useUserStore} from "../../../stores/user";
+import {watch} from "vue";
+import {confirmDelete} from "../../../utils/confirmDelete";
+import {usePasswordPolicy} from "../../../utils/passwordPolicy.ts";
+import PageHeader from "../../../components/core/PageHeader.vue";
+import ColumnTable from "../../../components/core/ColumnTable.vue";
   import { SysAdminApi } from "../../apis/sys_admin.ts";
-  import { SysRoleApi } from "../../apis/sys_role.ts";
   import {computed, onMounted, ref} from "vue";
-  import { ElMessage,ElMessageBox } from "element-plus";
+  import { ElMessage } from "element-plus";
   import FormDialog from "../../../components/core/FormDialog.vue";
 
+  const userStore = useUserStore()
   const dialogOpen = ref(false)
   const roles:any = ref([])
   const queryForm = ref({
     page:1,
+    role_id:undefined as number | undefined,
+    sorts:[] as Array<{field:string;order:string}>,
+    filters:[] as Array<{field:string;operator:string;value:string | number}>,
     limit:10
   })
+  const listError = ref('')
+  let listRequest = 0
   const pageLoading = ref(true)
   const total = ref(0)
   const tableData = ref([])
+  const selectedIds = ref<number[]>([])
+  const canDelete = (row:{id:number;is_default?:boolean})=>row.id !== userStore.UserData.id && !row.is_default
+  const handleSelectionChange = (rows:Array<{id:number;is_default?:boolean}>)=>{
+    selectedIds.value = rows.filter(canDelete).map(row=>row.id)
+  }
   const submitForm:any = ref({})
+  const {hint:passwordHint, rules:passwordRules, load:loadPasswordPolicy} = usePasswordPolicy(()=>!submitForm.value.id)
 
 
-  const rolesMap = computed(()=>{
-    let mapData:any = {}
-    roles.value.forEach((item:any) => {
-      mapData[item.id] = item
-    })
-    return mapData
-  })
-
-  const getRoles = async ()=>{
-    const response = await SysRoleApi.List()
-    roles.value = response.data.list
-  }
-
-  const getPageData = async () => {
-    pageLoading.value = true
-    try {
-      const response = await SysAdminApi.List(queryForm.value)
-      tableData.value = response.data.list
-      total.value = response.data.total
-    }catch (e) {
-      console.log(e)
+  const selectedRoles = computed(()=>roles.value.filter((role:any)=>(submitForm.value.role_ids || []).includes(role.id)))
+  const handleRolesChange = () => {
+    if (!submitForm.value.role_ids.includes(submitForm.value.role_id)) {
+      submitForm.value.role_id = submitForm.value.role_ids[0]
     }
-    pageLoading.value = false
   }
 
-  const handleAdd = (defaultForm:any)=>{
-    submitForm.value = defaultForm
+const getPageData = async () => {
+  const request = ++listRequest
+  pageLoading.value = true
+  listError.value = ''
+  selectedIds.value = []
+  try {
+    const response = await SysAdminApi.List({ ...queryForm.value })
+    if (request !== listRequest) return
+    tableData.value = response.data.list ?? []
+    roles.value = response.data.role_options ?? []
+    total.value = response.data.total
+  } catch (error) {
+    if (request !== listRequest) return
+    tableData.value = []
+    roles.value = []
+    total.value = 0
+    listError.value = '列表加载失败，请点击刷新重试'
+    console.error(error)
+  } finally {
+    if (request === listRequest) pageLoading.value = false
+  }
+}
+
+  const handleAdd = async (defaultForm:any)=>{
+    if (pageLoading.value || listError.value) return
+    try { await loadPasswordPolicy() }
+    catch { return }
+    submitForm.value = {...defaultForm, role_ids:[...(defaultForm.role_ids || [])], password:""}
     dialogOpen.value = true
   }
 
-  const handleDelete = (ids:Array<any>) => {
-    ElMessageBox.confirm("您确认要删除该管理员吗？","删除提示",{
-      type:"error",
-      beforeClose:async (action:any, instance:any, done:any)=>{
-        if (action === "confirm") {
-          instance.confirmButtonLoading = true
-          try {
-            await SysAdminApi.Delete(ids)
-            ElMessage.success("删除成功")
-            getPageData().then()
-          }catch (e){
-            console.log(e)
-          }
-          done()
-          instance.confirmButtonLoading = false
-        } else if (!instance.confirmButtonLoading){
-          done()
-        }
-      }
-    })
-  }
+const handleDelete = (ids:Array<any>) => confirmDelete({
+  subject:"管理员",
+  count:ids.length,
+  description:"删除后对应账号将无法登录，请确认不再需要该账号。",
+  onConfirm:async ()=>{
+    await SysAdminApi.Delete(ids)
+    ElMessage.success("删除成功")
+    const lastPage = Math.max(1,Math.ceil((total.value - ids.length) / queryForm.value.limit))
+    if(queryForm.value.page > lastPage) queryForm.value.page = lastPage
+    else await getPageData()
+  },
+})
 
   const handleChangeSwitch = async (row:any,key:string) => {
     row.loading = true
@@ -171,12 +208,29 @@
   }
 
   onMounted(()=>{
-    getRoles()
     getPageData()
   })
+const emptySearch = ()=>({username:'',nickname:'',phone:'',email:'',role_id:undefined as number | undefined,status:undefined as number | undefined})
+const searchForm = ref(emptySearch())
+const handleSearch = ()=>{
+  const filters:typeof queryForm.value.filters = []
+  for(const field of ['username','nickname','phone','email'] as const){
+    const value = searchForm.value[field].trim()
+    if(value) filters.push({field,operator:'like',value})
+  }
+  if(typeof searchForm.value.status === 'number') filters.push({field:'status',operator:'=',value:searchForm.value.status})
+  queryForm.value = {...queryForm.value,page:1,filters,role_id:searchForm.value.role_id || undefined}
+}
+const handleReset = ()=>{searchForm.value=emptySearch();handleSearch()}
+const handleSortChange = ({prop,order}:{prop:string;order:'ascending'|'descending'|null})=>{
+  queryForm.value.sorts = ['id'].includes(prop) && order ? [{field:prop,order:order === 'ascending' ? 'asc' : 'desc'}] : []
+  queryForm.value.page = 1
+}
+watch(queryForm, ()=>{ getPageData() }, {deep:true})
 </script>
 
 
 <style scoped>
+.admin-roles { display: flex; flex-wrap: wrap; gap: 6px; }
 
 </style>

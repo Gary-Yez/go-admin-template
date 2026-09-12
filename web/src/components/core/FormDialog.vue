@@ -15,18 +15,20 @@
         </template>
       </el-page-header>
     </template>
+    <FormNote v-if="props.description" :title="props.title || '资料设置'" :description="props.description" :icon="props.noteIcon" />
     <el-form :model="form" label-position="top" ref="formRef" :size="props.size">
       <slot :formRef="formRef"></slot>
     </el-form>
     <template #footer>
       <el-button size="large" @click="handleClose">{{ props.cancelBtnText }}</el-button>
-      <el-button size="large" type="primary" :loading="confirmLoading" @click="handleConfirm">{{ props.confirmBtnText }}</el-button>
+      <el-button size="large" :type="props.confirmBtnType" :loading="confirmLoading" @click="handleConfirm">{{ props.confirmBtnText }}</el-button>
     </template>
   </el-drawer>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
+import FormNote from "./FormNote.vue";
 
 const formRef = ref();
 const show = defineModel({
@@ -44,20 +46,24 @@ type SizeType = 'large' | 'default' | 'small'
 
 const props = withDefaults(defineProps<{
   title?: string
+  description?: string
+  noteIcon?: string
   onConfirm?: () => Promise<void>
   closeOnClickModal?: boolean
   closeOnPressEscape?: boolean
   destroyOnClose?: boolean
   maxWidth?: number
   size?: SizeType
+  confirmBtnType?: 'primary' | 'danger'
   confirmBtnText?:string
   cancelBtnText?:string
 }>(), {
   closeOnClickModal: false,
-  closeOnPressEscape: false,
+  closeOnPressEscape: true,
   destroyOnClose: false,
   maxWidth: 500,
   size: "large",
+  confirmBtnType:"primary",
   confirmBtnText:"确认",
   cancelBtnText:"取消"
 })

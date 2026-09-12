@@ -51,7 +51,12 @@ export const cronMethod:any = {
     },
 }
 
-export function transObjToSpec(specType: string, week:number, day:number, hour:number, minute:number, second:number): string {
+export function transObjToSpec(specType: string, week:number, day:number, hour:number, minute:number, second:number, timezone = ''): string {
+    const expression = transObjToExpression(specType, week, day, hour, minute, second);
+    return expression && timezone ? `CRON_TZ=${timezone} ${expression}` : expression;
+}
+
+function transObjToExpression(specType: string, week:number, day:number, hour:number, minute:number, second:number): string {
     switch (specType) {
         case 'perMonth':
             return `${minute} ${hour} ${day} * *`;
@@ -76,6 +81,7 @@ export function transObjToSpec(specType: string, week:number, day:number, hour:n
 
 export function transSpecToObj(spec: string) {
     let specItem = {
+        timezone: '',
         specType: 'perNMinute',
         week: 1,
         day: 0,
@@ -89,7 +95,9 @@ export function transSpecToObj(spec: string) {
             minute: 1
         };
     }
-    let specs = spec.split(' ');
+    const timezone = spec.trim().match(/^(?:CRON_TZ|TZ)=([^\s]+)\s+/);
+    specItem.timezone = timezone?.[1] ?? '';
+    let specs = spec.trim().slice(timezone?.[0].length ?? 0).split(/\s+/);
     if (specs.length === 2) {
         if (specs[1].indexOf('m') !== -1) {
             specItem.specType = 'perNMinute';
@@ -135,6 +143,13 @@ export function transSpecToObj(spec: string) {
 }
 
 export function transSpecToStr(spec: string): string {
+    const description = formatSpec(spec);
+    const timezone = transSpecToObj(spec)?.timezone;
+    const zoneLabel = timezone === 'Asia/Shanghai' ? '北京时间' : timezone || '北京时间';
+    return description ? `${description}（${zoneLabel}）` : spec || '未设置';
+}
+
+function formatSpec(spec: string): string {
     const specObj = transSpecToObj(spec);
     if (!specObj){
         return '';

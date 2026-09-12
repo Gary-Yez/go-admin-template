@@ -1,6 +1,6 @@
 <template>
   <el-dropdown ref="dropdownRef" trigger="click">
-    <el-input v-model="selectIcon" readonly placeholder="请选择图标">
+    <el-input size="large" v-model="selectIcon" readonly placeholder="请选择图标">
       <template #prepend v-if="selectIcon">
         <iconify-icon class="text-[18px]" :icon="selectIcon" :key="selectIcon"></iconify-icon>
       </template>
@@ -8,7 +8,7 @@
     <template #dropdown>
       <div class="icon-selector-content">
         <div class="mb-[10px]">
-          <el-input v-model="search" ref="searchRef" size="default" clearable placeholder="要搜索的图标" @input="()=>{queryForm.page = 1;filterIcons()}">
+          <el-input size="large" v-model="search" ref="searchRef" clearable placeholder="要搜索的图标" @input="()=>{queryForm.page = 1;filterIcons()}">
             <template #prefix>
               <iconify-icon icon="iconoir:search"></iconify-icon>
             </template>

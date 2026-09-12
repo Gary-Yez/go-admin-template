@@ -1,9 +1,10 @@
 import {request} from "../../utils/request.ts";
 
 export const SysAdminApi = {
-    List(query:Object){
+    List(query:{role_id?:number;page:number;limit:number;sorts?:{field:string;order:string}[];filters?:{field:string;operator:string;value:unknown}[]}){
         return request.get("/sys_admin/list",{
-            params:query
+            params:{...query,sorts:query.sorts?.map(sort=>JSON.stringify(sort)),filters:query.filters?.map(filter=>JSON.stringify(filter))},
+            paramsSerializer:{indexes:null},
         });
     },
     Create(form:Object){

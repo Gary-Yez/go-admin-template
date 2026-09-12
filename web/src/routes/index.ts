@@ -23,16 +23,19 @@ router.beforeEach(async (to, _, next) => {
     if (userStore.AccessToken && !userStore.IsLogin){
         try {
             await userStore.getUserData()
-            addSyncRouter(userStore.UserMenu)
-            return next(to.path)
+            addSyncRouter(userStore.UserMenu,userStore.UserData.role?.default_menu)
+            return next(to.redirectedFrom?.path === '/dashboard' ? '/dashboard' : to.fullPath)
         }catch (e) {
-            await userStore.logout()
+            if (userStore.AccessToken) await userStore.logout(false)
             return next("/login")
         }
     }
     if (!userStore.IsLogin && to.name !== "login"){
         return next('/login')
     }else if (userStore.IsLogin && to.name === "login"){
+        return next('/dashboard')
+    }
+    if (userStore.IsLogin && to.matched.length === 0){
         return next('/dashboard')
     }
     next()
