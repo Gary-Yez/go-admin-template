@@ -14,35 +14,28 @@
 ```text
 go-admin-template/
 ├── server/
-│   ├── main.go              # 后端启动入口
-│   ├── go.mod               # 后端依赖
-│   ├── config.yaml          # 数据库、Redis、端口等环境配置
-│   ├── dist/                # 前端构建结果
-│   ├── modules/
-│   │   ├── enter.go         # 自动注册业务模块
-│   │   └── test/            # 示例模块：model、service、controller、enter
-│   └── settings/
-│       ├── config.go        # 生成的配置结构和公开配置项
-│       └── init.go          # 用户动态初始值扩展
+│   ├── main.go             # 后端启动入口
+│   ├── go.mod              # 后端依赖
+│   ├── config.yaml         # 数据库、Redis、端口等环境配置
+│   ├── dist/               # 前端构建结果
+│   ├── modules/            # 用户业务模块
+│   └── settings/           # 用户配置定义与初始化
 └── web/
-    ├── package.json         # 前端依赖和启动、构建命令
-    ├── vite.config.ts       # 前端构建配置
-    ├── .env                 # 默认 API 地址
-    ├── .env.development     # 开发 API 地址
-    ├── public/              # 静态资源
+    ├── package.json        # 安装公共包与业务依赖
+    ├── vite.config.ts      # 公共包和业务页面统一构建
+    ├── .env                # API 地址
+    ├── public/             # 项目 Logo、默认头像等资源
     └── src/
-        ├── core/apis/       # 系统 API
-        ├── core/views/      # 系统页面
-        ├── apis/            # 业务 API
-        ├── views/           # 业务页面
-        ├── components/core/ # 共用组件
-        ├── layouts/         # 布局、菜单、标签页
-        ├── routes/          # 路由
-        ├── stores/          # 用户等状态
-        └── utils/           # 请求封装等工具
+        ├── main.ts         # createAdminApp 启动入口
+        ├── pages.ts        # 收集并注册业务页面
+        ├── style.css       # Tailwind 与用户样式入口
+        ├── apis/           # 业务 API
+        └── views/          # 业务页面
 ```
 
 开发业务主要修改 `server/modules`、`server/settings/init.go`、`web/src/apis` 和 `web/src/views`。系统后端功能由 go-admin 提供。
+
+公共前端的接入、公开接口、维护和发布说明见 [go-admin-web 文档](../go-admin-web/README.md)。当前使用 `file:../../go-admin-web` 同级源码依赖，需按同级目录布局放置公共包，发布到 npm 后可按版本升级。本地维护在总目录执行 `./maintain.ps1 init`，再分别执行 `./maintain.ps1 server` 和 `./maintain.ps1 web`。代码生成需同步使用包含公共包导入更新的 go-admin 版本。
 
 ## 快速启动
 
@@ -127,7 +120,7 @@ VITE_API_BASE_URL=http://localhost:8080/api
 先准备好 `server/config.yaml`，再在项目根目录构建镜像。Docker 会完成前端和后端编译，无需在宿主机安装 Go 或 Node.js：
 
 ```sh
-docker build -t go-admin-template:latest .
+docker build --build-context go-admin-web=../go-admin-web -t go-admin-template:latest .
 ```
 
 镜像包含 Go 程序和前端静态文件，由后端直接提供页面，不需要额外部署 Nginx。`server/config.yaml` 会复制到镜像运行根目录 `/app/config.yaml`，MySQL/PostgreSQL 和 Redis 使用外部服务。
@@ -305,9 +298,9 @@ JWT 签名密钥在启动配置 `jwt.secret` 中，首次生成配置文件时�
 
 ## 前端业务开发
 
-业务接口放在 `src/apis`，通过 `src/utils/request.ts` 调用。它统一携带令牌并检查响应中的业务 code。业务页面放在 `src/views`。
+业务接口放在 `src/apis`，通过 `import {request} from "@gary-yez/go-admin-web"` 调用。它统一携带令牌并检查响应中的业务 code。业务页面放在 `src/views`。
 
-优先复用 `src/components/core` 中的现有组件：
+从 `@gary-yez/go-admin-web` 导入并复用公共组件：
 
 | 组件 | 用途 |
 | --- | --- |

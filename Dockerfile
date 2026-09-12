@@ -3,6 +3,8 @@
 FROM node:22-bookworm-slim AS web-build
 WORKDIR /build/web
 COPY web/package.json web/yarn.lock ./
+COPY --from=go-admin-web /package.json /go-admin-web/package.json
+COPY --from=go-admin-web /src /go-admin-web/src
 RUN yarn install --frozen-lockfile
 COPY web/ ./
 RUN yarn build
