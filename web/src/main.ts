@@ -1,25 +1,16 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import {createPinia} from "pinia";
-import router from "./routes";
-import ElementPlus from "element-plus";
-import "./assets/css/tailwind.less"
-import "nprogress/nprogress.css"
-import "element-plus/dist/index.css"
-import 'element-plus/theme-chalk/dark/css-vars.css'
-import "./assets/css/global.less"
-import "./assets/css/theme.less"
-import * as ElementPlusIconsVue from "@element-plus/icons-vue"
+import './style.css'
+import {createAdminApp, registerAdminPages} from '@gary-yez/go-admin-web'
+import '@gary-yez/go-admin-web/style'
+import {pages} from './pages'
 
-import {readRememberedUsername} from "./utils/rememberAccount.ts";
+createAdminApp({
+    apiBaseURL: import.meta.env.VITE_API_BASE_URL,
+    dev: import.meta.env.DEV,
+    pages,
+})
 
-// 已登录用户也需要在启动时清除旧版本的明文密码缓存。
-readRememberedUsername()
-
-const pinia = createPinia()
-const app = createApp(App)
-
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-    app.component(key, component)
+if (import.meta.hot) {
+    import.meta.hot.accept('./pages', module => {
+        if (module) registerAdminPages(module.pages)
+    })
 }
-app.use(ElementPlus).use(pinia).use(router).mount('#app')
