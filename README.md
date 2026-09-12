@@ -139,7 +139,7 @@ docker build -t go-admin-template:latest .
 ```sh
 docker create --name go-admin-init go-admin-template:latest
 docker start -a go-admin-init
-docker cp go-admin-init:/app/config/config.yaml ./config.yaml
+docker cp go-admin-init:/app/config.yaml ./config.yaml
 docker rm go-admin-init
 ```
 
@@ -150,7 +150,7 @@ docker rm go-admin-init
 在 `config.yaml` 所在目录运行（以下挂载写法支持 PowerShell 和常见 Linux shell）：
 
 ```sh
-docker run -d --name go-admin --restart unless-stopped -p 8080:8080 --mount "type=bind,source=$(pwd)/config.yaml,target=/app/config/config.yaml,readonly" go-admin-template:latest
+docker run -d --name go-admin --restart unless-stopped -p 8080:8080 --mount "type=bind,source=$(pwd)/config.yaml,target=/app/config.yaml,readonly" go-admin-template:latest
 ```
 
 访问 `http://localhost:8080/admin/`。查看日志：
@@ -159,15 +159,11 @@ docker run -d --name go-admin --restart unless-stopped -p 8080:8080 --mount "typ
 docker logs -f go-admin
 ```
 
-容器以 UID 10001 的普通用户运行，挂载配置须对该用户可读。运行目录为 `/app`，默认配置路径为 `/app/config/config.yaml`。镜像默认使用北京时间、关闭开发工具、监听 `0.0.0.0:8080`；需要更换宿主机端口时修改 `-p` 左侧端口即可，例如 `-p 9000:8080`。
+容器以 UID 10001 的普通用户运行，挂载配置须对该用户可读。运行目录为 `/app`，默认配置路径为 `/app/config.yaml`。镜像不设置运行时环境变量覆盖配置，开发模式、监听地址和端口由挂载的 `config.yaml` 决定。生产配置请设置 `server.dev: false`、`server.host: "0.0.0.0"`。以上命令以 `server.port: "8080"`、`server.admin_prefix: "/admin"` 为例；`-p` 右侧端口须与配置中的监听端口一致，左侧为宿主机端口。Dockerfile 中的 `EXPOSE 8080` 只是端口声明，不会覆盖配置。
 
 多实例使用同一数据库、共享 Redis 和相同的 JWT 签名密钥，复用同一份配置。修改配置文件后重启容器生效。
 
-前端默认请求同域 `/api`。如果更改了后端 `server.api_prefix`，构建镜像时同步指定：
-
-```sh
-docker build --build-arg VITE_API_BASE_URL=/custom-api -t go-admin-template:latest .
-```
+前端 API 地址使用 `web/.env` 中的 `VITE_API_BASE_URL`；如果存在 `web/.env.production`，生产构建会优先使用其中的同名设置。修改后端 `server.api_prefix` 时，同步修改前端环境配置并重新构建镜像。本地专用的 `.env.local` 和 `.env.*.local` 已在 `.dockerignore` 中排除，不参与镜像构建。
 
 ## 生成并开发一个模块
 

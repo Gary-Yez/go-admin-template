@@ -5,11 +5,12 @@ WORKDIR /build/web
 COPY web/package.json web/yarn.lock ./
 RUN yarn install --frozen-lockfile
 COPY web/ ./
-ARG VITE_API_BASE_URL=/api
-RUN VITE_API_BASE_URL="${VITE_API_BASE_URL}" yarn build
+RUN yarn build
 
 FROM golang:1.25.5-alpine AS server-build
 WORKDIR /build/server
+# 前端构建完成后，再开始后端构建。
+COPY --from=web-build /build/server/dist ./dist
 COPY server/go.mod server/go.sum ./
 RUN go mod download
 COPY server/ ./
@@ -19,16 +20,12 @@ FROM alpine:3.22 AS runtime
 RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S -g 10001 app \
     && adduser -S -D -H -u 10001 -G app app \
-    && mkdir -p /app/config \
+    && mkdir -p /app \
     && chown -R app:app /app
 WORKDIR /app
-ENV TZ=Asia/Shanghai \
-    MYAPP_SERVER_DEV=false \
-    MYAPP_SERVER_HOST=0.0.0.0 \
-    MYAPP_SERVER_PORT=8080
 COPY --from=server-build --chown=app:app /out/go-admin ./go-admin
-COPY --from=web-build --chown=app:app /build/server/dist ./dist
+COPY --from=server-build --chown=app:app /build/server/dist ./dist
 USER app
 EXPOSE 8080
 ENTRYPOINT ["/app/go-admin"]
-CMD ["--config", "/app/config/config.yaml"]
+CMD ["--config", "/app/config.yaml"]
