@@ -89,17 +89,6 @@
   resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.2.8.tgz#21a907684723bbbaa5f0974cf7730bd797eb8e62"
   integrity sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==
 
-"@gary-yez/go-admin-web@1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@gary-yez/go-admin-web/-/go-admin-web-1.0.2.tgz#ed38167f492608114d8e12f65c5d9c3044d993d1"
-  integrity sha512-peX4HL0DS7gyXVSuQGHofI1SeYD5jrUlwpd3+4xpCoDCA9d2ltM2HZlqG145W6bTftvx5pkt7GsKmuD8HrFXhQ==
-  dependencies:
-    "@element-plus/icons-vue" "^2.3.1"
-    "@iconify-json/iconoir" "^1.2.7"
-    echarts "^5.5.1"
-    highlight.js "11.11.1"
-    nprogress "^0.2.0"
-
 "@iconify-json/iconoir@^1.2.7":
   version "1.2.7"
   resolved "https://registry.yarnpkg.com/@iconify-json/iconoir/-/iconoir-1.2.7.tgz#93a1a89e989997c4c12d7c8011652ebbc3324d9b"
