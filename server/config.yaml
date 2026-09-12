@@ -1,0 +1,24 @@
+# 修改数据库等配置后，请重新启动程序。
+server:
+  node_name: "" # 节点显示名称，留空使用主机名；实例 ID 每次启动自动生成
+  dev: false # 开发环境需要代码生成工具时改为 true
+  host: "0.0.0.0"
+  port: "8080"
+  admin_prefix: "/admin"
+  api_prefix: "/api"
+jwt:
+  secret: "DO3QJQCMS5WEKGN4VPBCOCMWDTAN5BKSDYV3UVRGQOUJHXDIK3TW" # 自动随机生成；多实例须使用相同密钥，修改后重启生效
+database:
+  driver: "mysql" # mysql / postgres
+  host: "127.0.0.1"
+  port: "3306"
+  username: ""
+  password: ""
+  name: ""
+  sslmode: "disable" # PostgreSQL TLS 模式；MySQL 忽略
+redis:
+  host: "" # 留空时使用内存缓存
+  port: "6379"
+  username: ""
+  password: ""
+  db: 0

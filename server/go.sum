@@ -28,6 +28,8 @@ github.com/Gary-Yez/go-admin v0.10.0 h1:jufiYRh/aOA6x/WqCdQjLWfe4kCigxjpnzXL3YTF
 github.com/Gary-Yez/go-admin v0.10.0/go.mod h1:8LEQbEFi/O8U3SC7HypHYFNoQYDTUcqRGQEODNSiGXw=
 github.com/Gary-Yez/go-admin v0.11.0 h1:PQiXQUl4jYgo6MTiiFOm1tNTh2JaU9BE7JQxrAdDHII=
 github.com/Gary-Yez/go-admin v0.11.0/go.mod h1:K4q5zCUPFCoHoVEXtEBmcmoSUwEjPoxbxGeRORg6etE=
+github.com/Gary-Yez/go-admin v0.11.1 h1:bF8Nkyrpy0/pf/VPxlYCKZ549MaBNTiRHJhEbnMi9PU=
+github.com/Gary-Yez/go-admin v0.11.1/go.mod h1:6BtzLjijacPM+8XW92kW0f1vHS+PDmEnv+4GCtyZBoo=
 github.com/bmatcuk/doublestar/v4 v4.6.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/bmatcuk/doublestar/v4 v4.9.1 h1:X8jg9rRZmJd4yRy7ZeNDRnM+T3ZfHv15JiBJ/avrEXE=
 github.com/bmatcuk/doublestar/v4 v4.9.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
