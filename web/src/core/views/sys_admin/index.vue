@@ -121,8 +121,8 @@ import ColumnTable from "../../../components/core/ColumnTable.vue";
   const total = ref(0)
   const tableData = ref([])
   const selectedIds = ref<number[]>([])
-  const canDelete = (row:{id:number;is_default?:boolean})=>row.id !== userStore.UserData.id && !row.is_default
-  const handleSelectionChange = (rows:Array<{id:number;is_default?:boolean}>)=>{
+  const canDelete = (row:{id:number})=>row.id !== userStore.UserData.id
+  const handleSelectionChange = (rows:Array<{id:number}>)=>{
     selectedIds.value = rows.filter(canDelete).map(row=>row.id)
   }
   const submitForm:any = ref({})

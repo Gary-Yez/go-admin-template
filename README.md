@@ -49,7 +49,7 @@ go-admin-template/
 ### 1. 准备环境
 
 - Go 1.25.5。
-- MySQL，提前创建数据库和账号。
+- MySQL 或 PostgreSQL，提前创建数据库和账号。
 - Node.js 22.12+，安装 Yarn；项目已有 yarn.lock。
 - Redis 可选：单实例可使用内存缓存，多实例使用共享 Redis。
 
@@ -74,12 +74,14 @@ server:
   port: "8080"
   admin_prefix: "/admin"
   api_prefix: "/api"
-mysql:
+database:
+  driver: "mysql" # mysql / postgres
   host: "127.0.0.1"
   port: "3306"
   username: "your_user"
   password: "your_password"
-  database: "your_database"
+  name: "your_database"
+  sslmode: "disable" # PostgreSQL TLS 模式；MySQL 忽略
 redis:
   host: "" # 留空使用内存缓存
   port: "6379"
@@ -87,6 +89,8 @@ redis:
   password: ""
   db: 0
 ```
+
+使用 PostgreSQL 时，将 `database.driver` 改为 `postgres`，端口改为 `5432`（或实际端口）。旧配置的 `mysql` 节点需要改为 `database`，其中的 `database` 字段改为 `name`；切换连接不会自动迁移已有数据库数据。
 
 也可指定配置文件：
 
@@ -117,6 +121,53 @@ VITE_API_BASE_URL=http://localhost:8080/api
 ### 4. 登录后台
 
 首次初始化的账号为 `admin`，密码为 `123456`。登录后修改密码。
+
+## Docker 部署
+
+在项目根目录构建镜像，Docker 会完成前端和后端编译，无需在宿主机安装 Go 或 Node.js：
+
+```sh
+docker build -t go-admin-template:latest .
+```
+
+镜像包含 Go 程序和前端静态文件，由后端直接提供页面，不需要额外部署 Nginx。配置文件不会打包进镜像，MySQL/PostgreSQL 和 Redis 使用外部服务。
+
+### 首次生成配置
+
+没有生产配置时，先创建临时容器，让框架自动生成配置和随机 JWT 签名密钥：
+
+```sh
+docker create --name go-admin-init go-admin-template:latest
+docker start -a go-admin-init
+docker cp go-admin-init:/app/config/config.yaml ./config.yaml
+docker rm go-admin-init
+```
+
+首次启动生成配置后退出是正常行为。修改复制出来的 `config.yaml`，填写数据库及可选 Redis 的连接信息。容器里的 `127.0.0.1` 指向容器自身，连接外部服务需填写可访问的主机地址或同一 Docker 网络中的服务名。
+
+### 启动服务
+
+在 `config.yaml` 所在目录运行（以下挂载写法支持 PowerShell 和常见 Linux shell）：
+
+```sh
+docker run -d --name go-admin --restart unless-stopped -p 8080:8080 --mount "type=bind,source=$(pwd)/config.yaml,target=/app/config/config.yaml,readonly" go-admin-template:latest
+```
+
+访问 `http://localhost:8080/admin/`。查看日志：
+
+```sh
+docker logs -f go-admin
+```
+
+容器以 UID 10001 的普通用户运行，挂载配置须对该用户可读。运行目录为 `/app`，默认配置路径为 `/app/config/config.yaml`。镜像默认使用北京时间、关闭开发工具、监听 `0.0.0.0:8080`；需要更换宿主机端口时修改 `-p` 左侧端口即可，例如 `-p 9000:8080`。
+
+多实例使用同一数据库、共享 Redis 和相同的 JWT 签名密钥，复用同一份配置。修改配置文件后重启容器生效。
+
+前端默认请求同域 `/api`。如果更改了后端 `server.api_prefix`，构建镜像时同步指定：
+
+```sh
+docker build --build-arg VITE_API_BASE_URL=/custom-api -t go-admin-template:latest .
+```
 
 ## 生成并开发一个模块
 

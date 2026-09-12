@@ -1,0 +1,16 @@
+.git
+.idea
+.vscode
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+**/*.log
+**/*.exe
+server/config*.yaml
+server/config*.yml
+config/
+config*.yaml
+config*.yml
+web/.env.local
+web/.env.*.local
+web/.env.development*

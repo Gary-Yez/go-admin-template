@@ -1,3 +1,4 @@
 .idea
 ./web/node_modules
 ./server/dist
+./server/config.dev.yaml
