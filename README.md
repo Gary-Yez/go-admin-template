@@ -124,30 +124,25 @@ VITE_API_BASE_URL=http://localhost:8080/api
 
 ## Docker 部署
 
-在项目根目录构建镜像，Docker 会完成前端和后端编译，无需在宿主机安装 Go 或 Node.js：
+先准备好 `server/config.yaml`，再在项目根目录构建镜像。Docker 会完成前端和后端编译，无需在宿主机安装 Go 或 Node.js：
 
 ```sh
 docker build -t go-admin-template:latest .
 ```
 
-镜像包含 Go 程序和前端静态文件，由后端直接提供页面，不需要额外部署 Nginx。配置文件不会打包进镜像，MySQL/PostgreSQL 和 Redis 使用外部服务。
+镜像包含 Go 程序和前端静态文件，由后端直接提供页面，不需要额外部署 Nginx。`server/config.yaml` 会复制到镜像运行根目录 `/app/config.yaml`，MySQL/PostgreSQL 和 Redis 使用外部服务。
 
-### 首次生成配置
-
-没有生产配置时，先创建临时容器，让框架自动生成配置和随机 JWT 签名密钥：
-
-```sh
-docker create --name go-admin-init go-admin-template:latest
-docker start -a go-admin-init
-docker cp go-admin-init:/app/config.yaml ./config.yaml
-docker rm go-admin-init
-```
-
-首次启动生成配置后退出是正常行为。修改复制出来的 `config.yaml`，填写数据库及可选 Redis 的连接信息。容器里的 `127.0.0.1` 指向容器自身，连接外部服务需填写可访问的主机地址或同一 Docker 网络中的服务名。
+构建前请填写 `server/config.yaml` 的数据库及可选 Redis 连接信息。没有配置时，可先在 `server` 目录运行 `go run .`，由框架生成配置和随机 JWT 签名密钥；生成后退出是正常行为。容器中的 `127.0.0.1` 指向容器自身，连接外部服务需使用可访问的主机地址或同一 Docker 网络中的服务名。
 
 ### 启动服务
 
-在 `config.yaml` 所在目录运行（以下挂载写法支持 PowerShell 和常见 Linux shell）：
+直接使用镜像内配置启动：
+
+```sh
+docker run -d --name go-admin --restart unless-stopped -p 8080:8080 go-admin-template:latest
+```
+
+如需覆盖镜像内配置，在外部 `config.yaml` 所在目录运行（支持 PowerShell 和常见 Linux shell）：
 
 ```sh
 docker run -d --name go-admin --restart unless-stopped -p 8080:8080 --mount "type=bind,source=$(pwd)/config.yaml,target=/app/config.yaml,readonly" go-admin-template:latest
@@ -159,9 +154,9 @@ docker run -d --name go-admin --restart unless-stopped -p 8080:8080 --mount "typ
 docker logs -f go-admin
 ```
 
-容器以 UID 10001 的普通用户运行，挂载配置须对该用户可读。运行目录为 `/app`，默认配置路径为 `/app/config.yaml`。镜像不设置运行时环境变量覆盖配置，开发模式、监听地址和端口由挂载的 `config.yaml` 决定。生产配置请设置 `server.dev: false`、`server.host: "0.0.0.0"`。以上命令以 `server.port: "8080"`、`server.admin_prefix: "/admin"` 为例；`-p` 右侧端口须与配置中的监听端口一致，左侧为宿主机端口。Dockerfile 中的 `EXPOSE 8080` 只是端口声明，不会覆盖配置。
+容器以 UID 10001 的普通用户运行，挂载配置须对该用户可读。运行目录为 `/app`，默认配置路径为 `/app/config.yaml`。镜像不设置运行时环境变量覆盖配置，开发模式、监听地址和端口由 `/app/config.yaml` 决定。生产配置请设置 `server.dev: false`、`server.host: "0.0.0.0"`。以上命令以 `server.port: "8080"`、`server.admin_prefix: "/admin"` 为例；`-p` 右侧端口须与配置中的监听端口一致，左侧为宿主机端口。Dockerfile 中的 `EXPOSE 8080` 只是端口声明，不会覆盖配置。
 
-多实例使用同一数据库、共享 Redis 和相同的 JWT 签名密钥，复用同一份配置。修改配置文件后重启容器生效。
+多实例使用同一数据库、共享 Redis 和相同的 JWT 签名密钥，复用同一份配置。使用镜像内配置时，修改项目配置后需要重新构建镜像并重建容器；使用外部挂载配置时，修改后重启容器生效。
 
 前端 API 地址使用 `web/.env` 中的 `VITE_API_BASE_URL`；如果存在 `web/.env.production`，生产构建会优先使用其中的同名设置。修改后端 `server.api_prefix` 时，同步修改前端环境配置并重新构建镜像。本地专用的 `.env.local` 和 `.env.*.local` 已在 `.dockerignore` 中排除，不参与镜像构建。
 

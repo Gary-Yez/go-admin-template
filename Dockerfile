@@ -25,6 +25,7 @@ RUN apk add --no-cache ca-certificates tzdata \
 WORKDIR /app
 COPY --from=server-build --chown=app:app /out/go-admin ./go-admin
 COPY --from=server-build --chown=app:app /build/server/dist ./dist
+COPY --chown=app:app --chmod=600 server/config.yaml ./config.yaml
 USER app
 EXPOSE 8080
 ENTRYPOINT ["/app/go-admin"]

@@ -14,3 +14,4 @@ config*.yml
 web/.env.local
 web/.env.*.local
 web/.env.development*
+!server/config.yaml
