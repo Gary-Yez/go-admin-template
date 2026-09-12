@@ -1,6 +1,5 @@
 module github.com/Gary-Yez/go-admin-template
 
-replace github.com/Gary-Yez/go-admin => ../../go-admin
 
 go 1.25.5
 
