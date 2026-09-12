@@ -1,64 +1,96 @@
 # go-admin-template
 
-基于 **go-admin** 的前后端业务开发模板，帮助开发者快速搭建管理后台。
+基于 [go-admin](https://github.com/Gary-Yez/go-admin) 后端框架和 [go-admin-web](https://github.com/Gary-Yez/go-admin-web) 公共前端的业务开发模板。它负责应用启动、业务模块、业务配置和业务页面，系统功能由依赖提供。
 
-- **开箱可用的系统页面**：管理员、角色、菜单、API、配置管理和定时任务。
-- **可视化代码生成**：生成业务模块、前端页面与 API，支持字段筛选、菜单和按需增删改。
-- **简洁的配置调用**：`settings.BaseConfig.SiteName.Get()`，用户配置直接通过字段访问。
-- **统一开发体验**：复用请求封装、表格、图标选择、表单和删除提示。
+适合从后台管理能力直接开始开发业务：
 
-框架公开方法说明见 [go-admin README](https://github.com/Gary-Yez/go-admin#readme)。
+- 内置多角色、菜单和接口权限，支持角色默认首页。
+- 提供管理员、API 密钥、登录日志、配置管理、计划任务和节点监控。
+- 开发工具生成 Go 模块、Vue 页面及配置定义，支持预览变更与生成历史。
+- 系统页面与业务页面共享请求、布局、主题、筛选、表格和表单组件。
+- 支持 MySQL / PostgreSQL；单实例可使用内存缓存，多实例使用共享 Redis。
+- 前端编译后交由 Go 服务托管，可作为一个应用部署。
 
-## 项目结构
+## 项目结构与架构
 
 ```text
 go-admin-template/
 ├── server/
-│   ├── main.go             # 后端启动入口
-│   ├── go.mod              # 后端依赖
-│   ├── config.yaml         # 数据库、Redis、端口等环境配置
-│   ├── dist/               # 前端构建结果
-│   ├── modules/            # 用户业务模块
-│   └── settings/           # 用户配置定义与初始化
-└── web/
-    ├── package.json        # 安装公共包与业务依赖
-    ├── vite.config.ts      # 公共包和业务页面统一构建
-    ├── .env                # API 地址
-    ├── public/             # 项目 Logo、默认头像等资源
-    └── src/
-        ├── main.ts         # createAdminApp 启动入口
-        ├── pages.ts        # 收集并注册业务页面
-        ├── style.css       # Tailwind 与用户样式入口
-        ├── apis/           # 业务 API
-        └── views/          # 业务页面
+│   ├── main.go              # 配置全局 Gin 中间件，启动框架
+│   ├── go.mod / go.sum      # 业务模块名与后端依赖
+│   ├── config.yaml         # 运行环境：端口、数据库、Redis、JWT 密钥
+│   ├── modules/
+│   │   └── enter.go        # 注册业务模块
+│   ├── settings/
+│   │   ├── config.go       # 配置结构及公开配置项，开发工具维护
+│   │   └── init.go         # 开发者维护动态初始值
+│   └── dist/               # 前端构建产物，构建时生成
+├── web/
+│   ├── src/
+│   │   ├── main.ts         # 创建管理端应用
+│   │   ├── pages.ts        # 收集业务页面
+│   │   ├── style.css       # 宿主样式入口
+│   │   ├── views/          # 业务页面，开发时按需创建
+│   │   └── apis/           # 业务请求，开发时按需创建
+│   ├── public/             # Logo 等静态资源
+│   ├── .env                # 前端构建环境
+│   ├── vite.config.ts      # 源码编译、依赖去重、输出目录
+│   ├── tailwind.config.js  # 扫描业务页面和公共前端样式
+│   └── package.json / yarn.lock
+└── Dockerfile
 ```
 
-开发业务主要修改 `server/modules`、`server/settings/init.go`、`web/src/apis` 和 `web/src/views`。系统后端功能由 go-admin 提供。
+三个部分的职责：
 
-公共前端的接入、公开接口、维护和发布说明见 [go-admin-web 文档](../go-admin-web/README.md)。当前使用 `file:../../go-admin-web` 同级源码依赖，需按同级目录布局放置公共包，发布到 npm 后可按版本升级。本地维护在总目录执行 `./maintain.ps1 init`，再分别执行 `./maintain.ps1 server` 和 `./maintain.ps1 web`。代码生成需同步使用包含公共包导入更新的 go-admin 版本。
+| 部分 | 维护内容 | 扩展方式 |
+| --- | --- | --- |
+| go-admin | 系统模块、鉴权、数据库与缓存、任务及配置基础能力 | Go 依赖，注册业务 Module |
+| go-admin-web | 系统页面、路由、状态、布局、请求和公共组件 | npm 依赖，注册业务页面 |
+| 本模板 | 应用入口、业务数据、业务接口、业务页面与配置 | 直接编写或生成源码 |
 
-## 快速启动
+请求经过“前端 request → 后端身份与接口权限 → 模块控制器 → 业务服务 → 数据库/缓存”。业务数据归属和租户范围由业务服务限制，菜单隐藏不代表接口被禁止。
 
-### 1. 准备环境
+## 快速上手
 
-- Go 1.25.5。
-- MySQL 或 PostgreSQL，提前创建数据库和账号。
-- Node.js 22.12+，安装 Yarn；项目已有 yarn.lock。
-- Redis 可选：单实例可使用内存缓存，多实例使用共享 Redis。
+### 1. 下载并准备依赖
 
-### 2. 启动后端
+准备 Go 1.25.5 或更新的兼容版本、Node.js 24、Yarn 1.22.22，以及 MySQL 或 PostgreSQL。先创建空数据库，框架启动时初始化表。
 
-在项目的 server 目录执行：
+```sh
+git clone https://github.com/Gary-Yez/go-admin-template.git my-admin
+cd my-admin
+```
+
+也可在 GitHub 使用模板创建自己的仓库。独立业务项目不需要下载后端框架和公共前端的源码仓库。
+
+模板已使用发布的 Go/npm 依赖，无需同级源码目录。安装依赖：
 
 ```sh
 cd server
 go mod download
+cd ../web
+yarn install
+```
+
+后端与公共前端按配套版本更新。安装后提交依赖和锁文件；依赖锁完整时，日常安装可使用 `yarn install --frozen-lockfile`。
+
+### 2. 设置后端并启动
+
+在 `server/` 目录运行：
+
+```sh
 go run .
 ```
 
-修改 `server/config.yaml` 中的数据库信息。文件不存在时，首次运行会生成默认文件并退出，填写后再次运行即可。
+模板的 config.yaml 使用通用默认值，jwt.secret 留空。先填写数据库连接，并生成自己的随机密钥填入 jwt.secret：
 
-开发配置示例：
+```sh
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+密钥填写后再启动服务；多实例填写同一个密钥。如果 config.yaml 不存在，首次启动会自动生成随机密钥和默认配置，然后退出，填写数据库连接后重新启动即可。
+
+主要设置：
 
 ```yaml
 server:
@@ -68,281 +100,258 @@ server:
   admin_prefix: "/admin"
   api_prefix: "/api"
 database:
-  driver: "mysql" # mysql / postgres
+  driver: "mysql"
   host: "127.0.0.1"
   port: "3306"
   username: "your_user"
   password: "your_password"
   name: "your_database"
-  sslmode: "disable" # PostgreSQL TLS 模式；MySQL 忽略
+  sslmode: "disable"
 redis:
-  host: "" # 留空使用内存缓存
+  host: ""
   port: "6379"
-  username: ""
-  password: ""
   db: 0
 ```
 
-使用 PostgreSQL 时，将 `database.driver` 改为 `postgres`，端口改为 `5432`（或实际端口）。旧配置的 `mysql` 节点需要改为 `database`，其中的 `database` 字段改为 `name`；切换连接不会自动迁移已有数据库数据。
+这是字段说明片段，**不要用它覆盖完整配置并删掉 jwt.secret**。PostgreSQL 改为 driver: postgres、对应端口和连接参数。开发使用 dev: true，正式部署关闭。Redis host 留空适用于单实例，多实例使用同一 Redis。
 
-也可指定配置文件：
-
-```sh
-go run . -c config.dev.yaml
-```
-
-后端保持从 server 目录运行，开发工具会按此目录定位业务代码和相邻的 web。生产环境将 dev 设为 false；dev=true 的开发工具接口无需登录，仅用于受控开发环境。
+指定其他配置文件时执行 `go run . --config config.local.yaml`。配置文件路径不改变进程工作目录；开发工具依赖模板布局，应从 server 目录启动。
 
 ### 3. 启动前端
 
-另开终端，在项目的 web 目录执行：
-
-```sh
-cd web
-yarn install
-yarn dev
-```
-
-打开终端输出的前端地址。开发 API 地址在 `.env.development`：
+web/.env 的生产 API 地址为 `/api`，web/.env.development 已配置开发地址 `http://localhost:8080/api`，可直接启动 Vite。需要改开发地址时，在不提交到仓库的 `web/.env.development.local` 中覆盖：
 
 ```dotenv
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
-修改后端端口或 API 前缀时同步修改此地址，并重启前端开发服务。
+```sh
+cd web
+yarn dev
+```
 
-### 4. 登录后台
+从 Vite 输出的地址访问，避免直接在尚未构建 dist 时访问后端 /admin。远程开发时，把 localhost 换成浏览器能访问的后端地址。修改 .env 后重启前端开发服务。
 
-首次初始化的账号为 `admin`，密码为 `123456`。登录后修改密码。
+main.go 已注册 CORS 中间件，开发阶段允许跨域；正式环境按部署域名调整。前端 dev 仅决定开发工具入口展示，真正的接口开放由后端 server.dev 控制。
 
-## Docker 部署
+首次空数据库初始化账号为 `admin`，密码为 `123456`。首次登录后修改密码。
 
-先准备好 `server/config.yaml`，再在项目根目录构建镜像。Docker 会完成前端和后端编译，无需在宿主机安装 Go 或 Node.js：
+### 4. 更换业务 Go 模块名
+
+准备正式业务仓库时：
 
 ```sh
-docker build --build-context go-admin-web=../go-admin-web -t go-admin-template:latest .
+cd server
+go mod edit -module example.com/my-admin
 ```
 
-镜像包含 Go 程序和前端静态文件，由后端直接提供页面，不需要额外部署 Nginx。`server/config.yaml` 会复制到镜像运行根目录 `/app/config.yaml`，MySQL/PostgreSQL 和 Redis 使用外部服务。
+随后将 server 下源码中的 `github.com/Gary-Yez/go-admin-template/` 导入前缀替换为 `example.com/my-admin/`，包括 main.go 的 modules、settings 导入，以及已生成模块之间的导入，再执行 `go mod tidy`。
 
-构建前请填写 `server/config.yaml` 的数据库及可选 Redis 连接信息。没有配置时，可先在 `server` 目录运行 `go run .`，由框架生成配置和随机 JWT 签名密钥；生成后退出是正常行为。容器中的 `127.0.0.1` 指向容器自身，连接外部服务需使用可访问的主机地址或同一 Docker 网络中的服务名。
+不要替换框架依赖 `github.com/Gary-Yez/go-admin`。建议生成业务模块前先改好模块名。
 
-### 启动服务
+## 实例：开发商品管理
 
-直接使用镜像内配置启动：
+### 通过生成器创建完整 CRUD
 
-```sh
-docker run -d --name go-admin --restart unless-stopped -p 8080:8080 go-admin-template:latest
-```
+1. 确认后端 server.dev 为 true，从 server 目录启动，并使用 Vite 开发前端。
+2. 打开“开发工具 → 代码生成”，创建商品管理模块，填写模块标识与中文名称。
+3. 保留内置 ID、创建时间、更新时间；添加名称、价格、状态等业务字段。
+4. 按字段选择表格展示、表单、筛选与排序能力；内置三个字段默认支持排序。
+5. 按业务勾选新增、修改、删除。未启用的能力不会只隐藏按钮，而是影响生成代码。
+6. 选择菜单父级和菜单图标，检查预览；有覆盖变更时确认后应用。
+7. 检查生成文件并重启 Go 服务，使新模块注册和数据库初始化生效。
+8. 在角色管理中分配新菜单、接口权限，再以目标角色检查访问。
 
-如需覆盖镜像内配置，在外部 `config.yaml` 所在目录运行（支持 PowerShell 和常见 Linux shell）：
+生成后通常按以下职责继续开发：
 
-```sh
-docker run -d --name go-admin --restart unless-stopped -p 8080:8080 --mount "type=bind,source=$(pwd)/config.yaml,target=/app/config.yaml,readonly" go-admin-template:latest
-```
-
-访问 `http://localhost:8080/admin/`。查看日志：
-
-```sh
-docker logs -f go-admin
-```
-
-容器以 UID 10001 的普通用户运行，挂载配置须对该用户可读。运行目录为 `/app`，默认配置路径为 `/app/config.yaml`。镜像不设置运行时环境变量覆盖配置，开发模式、监听地址和端口由 `/app/config.yaml` 决定。生产配置请设置 `server.dev: false`、`server.host: "0.0.0.0"`。以上命令以 `server.port: "8080"`、`server.admin_prefix: "/admin"` 为例；`-p` 右侧端口须与配置中的监听端口一致，左侧为宿主机端口。Dockerfile 中的 `EXPOSE 8080` 只是端口声明，不会覆盖配置。
-
-多实例使用同一数据库、共享 Redis 和相同的 JWT 签名密钥，复用同一份配置。使用镜像内配置时，修改项目配置后需要重新构建镜像并重建容器；使用外部挂载配置时，修改后重启容器生效。
-
-前端 API 地址使用 `web/.env` 中的 `VITE_API_BASE_URL`；如果存在 `web/.env.production`，生产构建会优先使用其中的同名设置。修改后端 `server.api_prefix` 时，同步修改前端环境配置并重新构建镜像。本地专用的 `.env.local` 和 `.env.*.local` 已在 `.dockerignore` 中排除，不参与镜像构建。
-
-## 生成并开发一个模块
-
-### 使用代码生成器
-
-1. 前端使用 `yarn dev`，后端配置 dev=true。
-2. 打开代码生成页面，填写模块名、模型名和展示名称。
-3. 设置字段类型、列表显示、编辑、必填和筛选能力。
-4. 按需开启新增、编辑、删除，选择是否添加菜单及菜单图标。
-5. 预览生成结果，存在冲突时逐项确认覆盖。
-6. 生成后检查业务逻辑，编译并重启后端。
-7. 为普通角色授权新菜单和 API。
-
-生成文件位于：
-
-```text
-server/modules/<模块>/model.go
-server/modules/<模块>/service.go
-server/modules/<模块>/controller.go
-server/modules/<模块>/enter.go
-web/src/apis/<模块>.ts
-web/src/views/<模块>/index.vue
-```
-
-生成器同时维护 `server/modules/enter.go` 中的导入与注册。重新生成前查看差异，避免覆盖已经写好的业务逻辑。生成历史支持回填配置，以及删除记录时选择同时删除生成文件。
-
-### 各文件写什么
-
-| 文件 | 职责 |
+| 文件 | 应写内容 |
 | --- | --- |
-| `model.go` | 数据模型和输入结构 |
-| `service.go` | 查询与业务逻辑 |
-| `controller.go` | 请求参数、调用服务、返回响应 |
-| `enter.go` | 表迁移、路由、菜单和模块信息 |
+| 模块 enter.go | 模块名称、路由、建表及初始化、菜单定义 |
+| 模块 model.go | 持久化模型、字段约束、必要的请求结构 |
+| 模块 controller.go | 参数绑定、身份读取、调用服务、返回响应 |
+| 模块 service.go | 业务规则、查询、事务、缓存维护 |
+| modules/enter.go | 把模块接入启动过程 |
+| web/src/apis/模块.ts | 调用统一 request |
+| web/src/views/模块/index.vue | 列表、筛选、编辑表单与交互 |
 
-模块通过包 init 自动注册，不需要在 main 调用注册函数。数据库操作和任务注册写在模块 `Initialize()` 中，由框架在依赖就绪后执行。
+先提交现有改动，再确认生成覆盖。生成历史支持删除关联的本地文件，操作前核对清单；它不是 Git 回滚，也不代表数据库业务表同步删除。生成器修改的是业务源码，修改 Go 后需要重新启动。
 
-生成后端不会自动重启，新增或删除 Go 代码后需要手动重启。
+### 手动添加一个接口
 
-### 常用公开方法
-
-业务文件导入框架：
+不使用生成器也能注册模块。创建 `server/modules/product/enter.go`：
 
 ```go
+package product
+
 import (
     admin "github.com/Gary-Yez/go-admin"
-    "github.com/Gary-Yez/go-admin/request"
     "github.com/Gary-Yez/go-admin/response"
+    "github.com/gin-gonic/gin"
 )
-```
 
-| 调用 | 用途 |
-| --- | --- |
-| `admin.DB()` | GORM 查询、更新、事务和迁移 |
-| `admin.Cache()` | 缓存读写及锁 |
-| `admin.Scheduler().RegisterHandler(...)` | 注册定时任务处理函数 |
-| `request.GetAuthUser(ctx)` | 获取当前用户 ID 和角色 ID |
-| `request.GetReqList(ctx)` | 获取分页、筛选和排序参数 |
-| `request.GetReqIds(ctx)` | 获取去重后的批量 ID |
-| `response.Success(ctx, data)` | 返回成功结果 |
-| `response.List(ctx, list, total)` | 返回列表与总数 |
-| `response.Error(ctx, err)` | 返回错误 |
+type Mounter struct{}
 
-缓存业务键按 `模块:具体键` 命名，例如 `order:last_id`。`admin.Cache()` 自动添加 `go-admin:<数据库哈希>:cache:` 前缀，`Lock()` 使用同一命名空间下的 `lock:` 前缀。数据库哈希根据地址、端口和库名计算，多实例应保持这些配置一致；直接使用 `Client()` 不会自动添加前缀。
+func (*Mounter) Name() string { return "商品管理" }
+func (*Mounter) Initialize() error { return nil }
 
-例如在控制器中获取当前身份：
-
-```go
-authUser, err := request.GetAuthUser(ctx)
-if err != nil {
-    response.Error(ctx, err, 401)
-    return
+func (*Mounter) AdminRouter(group *gin.RouterGroup) {
+    group.GET("ping", func(ctx *gin.Context) {
+        response.Success(ctx, gin.H{"message": "商品模块已就绪"})
+    })
 }
-// 使用 authUser.UserId 和 authUser.RoleId。
+
+func (*Mounter) PublicRouter(group *gin.RouterGroup) {}
+
+func (*Mounter) Menus() []admin.MenuDefinition {
+    return []admin.MenuDefinition{{
+        Key: "product", Name: "商品管理", Path: "product",
+        Icon: "iconoir:box", Component: "../views/product/index.vue", Sort: 10,
+    }}
+}
 ```
 
-列表筛选和排序复用 request 的白名单方法。所有查询检查 GORM Error；统一响应成功时 JSON code 为 200。更多完整调用示例见框架 README。
-
-## 配置项的定义与使用
-
-### 定义配置
-
-数据库和端口等环境信息放 config.yaml；业务参数在开发工具的配置定义中添加，填写名称、Key、分组、类型、默认值、说明。
-
-例如添加 Key `order.timeout`、类型 int、默认值 30，生成器会在 `settings/config.go` 中创建 `OrderTimeout` 配置项。定义改变后编译并重启后端。
-
-`settings/config.go` 由生成器维护，用户代码放在独立文件中。配置实际值在配置管理页面按分组维护，保存到数据库和缓存。
-
-配置定义工具栏的排序按钮支持拖拽业务分组和组内配置项。预览确认后，顺序保存到生成代码和数据库；部署到新数据库也会恢复该顺序。包含内置配置的分组固定，内置项按 BaseConfig 的声明顺序显示，业务项排在其后。
-
-### 读取配置
+在 `server/modules/enter.go` 注册；下面按未改名的模板模块路径举例：
 
 ```go
-import "github.com/Gary-Yez/go-admin-template/settings"
+package modules
+
+import (
+    admin "github.com/Gary-Yez/go-admin"
+    "github.com/Gary-Yez/go-admin-template/modules/product"
+)
+
+func init() {
+    admin.MustRegister("product", &product.Mounter{})
+}
 ```
 
-```go
-// 内置配置保留 BaseConfig 分组。
-name, err := settings.BaseConfig.SiteName.Get() // string, error
-minutes := settings.BaseConfig.JwtExpireMinutes.MustGet() // int
+main 已空白导入 modules，无需再手动调用 Initialize。新增数据表时，将 AutoMigrate 放在模块 Initialize 内；接口路径为 `/api/product/ping`，参与权限管理。需要匿名接口时才放 PublicRouter，它不会自动经过登录和 Casbin 校验。
 
-// 模板当前的示例业务字段。
-text, err := settings.Test.Get() // string, error
+### 接上业务页面
 
-// 添加 order.timeout 后可使用。
-timeout := settings.OrderTimeout.MustGet() // int
+创建 `web/src/views/product/index.vue`：
+
+```vue
+<script setup lang="ts">
+import {ref} from 'vue'
+import {PageHeader, request} from '@gary-yez/go-admin-web'
+
+const message = ref('点击按钮检查业务接口')
+const loading = ref(false)
+
+async function check() {
+  loading.value = true
+  try {
+    const result = await request.get('/product/ping')
+    message.value = result.data.message
+  } catch (error) {
+    message.value = typeof error === 'string'
+      ? error
+      : error instanceof Error ? error.message : '请求失败'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<template>
+  <el-card class="container" shadow="never">
+    <PageHeader title="商品管理" description="管理商品资料与业务数据" />
+    <p>{{ message }}</p>
+    <el-button type="primary" :loading="loading" @click="check">检查接口</el-button>
+  </el-card>
+</template>
 ```
 
-自己的项目修改 module 路径后，同步调整 import。
+pages.ts 自动收集 views 下的 Vue 页面，菜单中的组件值填写 `../views/product/index.vue`。重启后端后，使用超级管理员或已分配权限的角色进入菜单。
 
-- `Get()` 返回具体类型的值和错误。
-- `MustGet()` 返回具体类型的值，失败时 panic。
-- 每次只读取这一项，缓存未命中时再查询数据库。
-- 配置自动注册，不需要在 main 手动注册。
+此示例展示模块、权限菜单和页面请求如何连接；完整列表与增删改使用生成器生成。不要同时手动注册和生成同一个模块 Key。
 
-### 填充动态初始值
+## 配置定义与业务调用
 
-`settings/init.go` 已预留空 Init 方法，不使用时保留即可。添加 OrderTimeout 字段后，可以改为：
+config.yaml 只承担环境信息。业务配置使用“开发工具 → 配置定义”声明名称、Key、分组、类型、默认值和说明；生成到 settings/config.go，部署后由框架补齐数据库配置记录。
+
+例如定义 `order.timeout`，生成 `OrderTimeout` 后：
 
 ```go
-package settings
+minutes, err := settings.OrderTimeout.Get()
+if err != nil {
+    return err
+}
+_ = minutes // int，业务中使用它计算订单过期时间
+```
 
-import admin "github.com/Gary-Yez/go-admin"
+框架内置站点名称读取：`settings.BaseConfig.SiteName.Get()`。业务字段直接通过 settings 字段访问，不需要中间的 Config 层。
 
+动态初始值放在 `settings/init.go`，并添加 admin 导入：
+
+```go
 func (c *config) Init() error {
     c.OrderTimeout = admin.ConfigDefault(60)
     return nil
 }
 ```
 
-固定默认值直接在配置定义中填写；需要计算的值放进 Init。框架自动先处理内置初始化，用户只填写业务部分。
+Init 在框架初始化配置时调用，每次启动执行，但只对数据库中缺失的 Key 保存初始值。不要在此读取 Get/MustGet，也不要调用 BaseConfig.Init。已有值通过“配置管理”修改；改默认值不会覆盖生产数据库。
 
-Init 每次启动都会执行，但只补建缺失配置，不覆盖数据库已有值。这里不要用 Get/MustGet 读取配置。`ConfigDefault` 不是运行期修改方法，实际值通过配置管理页面保存。
+Get 按 Key 读取缓存，未命中从数据库加载；MustGet 错误时 panic，业务请求优先处理 Get 的错误。配置管理支持手动同步缓存和清理无效配置；“无效”按当前实例结构判断，多版本共存时先确认其他实例是否仍使用对应 Key。
 
-JWT 签名密钥在启动配置 `jwt.secret` 中，首次生成配置文件时自动随机填写，至少 32 字节；也可通过 `MYAPP_JWT_SECRET` 环境变量覆盖。多实例必须使用相同密钥，修改后重启生效并使旧 JWT 失效。不要提交真实密钥到仓库。登录有效期仍在配置管理中，默认 7 天。
+## 页面与后端开发约定
 
-## 菜单、权限与任务
+- 前端公共能力从 `@gary-yez/go-admin-web` 导入：PageHeader、ColumnTable、FormDialog、FormNote、TableTime、IconSelect、request、confirmDelete 和各 Store。
+- PageHeader 图标优先来自当前菜单，无图标时用 Grid；无需把菜单图标写死在页面。
+- 表格使用 ColumnTable 和页面唯一 storageKey；刷新、新增、批量删除放 toolbar，批量删除只在有选择时显示。
+- 输入框、选择器、表格使用 large。文字和数字筛选失焦查询，选择框变化查询，时间使用范围筛选。
+- 筛选复用公共 search-form 样式；列表包含 el-empty 和 listError，错误 alert 的间距放在外层 div。
+- 删除复用 confirmDelete，侧面编辑复用 FormDialog；它默认支持 Esc 关闭。
+- 后端参数复用 request.GetReqList/GetReq/GetReqIds，筛选和排序白名单放服务端。
+- response.Error 的错误码在 JSON code 中，HTTP 状态仍为 200；前端统一 request 已处理该协议。
+- 模块初始化才可访问 admin.DB/Cache/Scheduler；不要在包 init 中操作数据库。
+- 任务处理函数在模块 Initialize 中注册，再在计划任务页面配置实例。默认北京时间，`0 3 * * *` 表示每天 03:00。
 
-- **菜单**：生成时勾选添加菜单，重启后自动补齐；普通角色需要授权菜单及 API。
-- **API**：后台路由在启动时自动登记，在 API 管理编辑说明、分组和清理失效接口。
-- **多角色**：管理员可以绑定多个角色，右上角切换当前角色，按当前角色权限访问。
-- **API 密钥**：右上角进入密钥页面，按用户拥有的角色创建，可填写备注、有效期或选择永久。
-- **定时任务**：先在模块 Initialize 中注册处理函数，再在后台配置任务。Cron 为五段表达式，例如 `*/5 * * * *`，默认 UTC，可指定 `CRON_TZ=Asia/Shanghai`。
+接口签名、组件参数、缓存和锁语义请查阅 [后端公开 API 文档](https://github.com/Gary-Yez/go-admin#readme) 与 [前端公开 API 文档](https://github.com/Gary-Yez/go-admin-web#readme)。
 
-## 前端业务开发
+## 构建与部署
 
-业务接口放在 `src/apis`，通过 `import {request} from "@gary-yez/go-admin-web"` 调用。它统一携带令牌并检查响应中的业务 code。业务页面放在 `src/views`。
-
-从 `@gary-yez/go-admin-web` 导入并复用公共组件：
-
-| 组件 | 用途 |
-| --- | --- |
-| `PageHeader` | 页面标题和菜单图标 |
-| `ColumnTable` | 统一表格及列显示能力 |
-| `FormDialog` | 表单弹窗 |
-| `IconSelect` | 菜单图标选择 |
-| `DeleteNotice` | 删除确认内容 |
-| `TableTime` | 时间展示 |
-
-新页面以生成器输出和系统页面为例，复用已有筛选、空数据、错误提示和按钮样式。输入框、选择器和表格使用 large；文本与数字筛选失焦查询，选择框变化时查询。
-
-## 构建与运行
-
-在 web 目录构建前端：
+前端生产 API 地址可使用默认 `/api`，浏览器与后端同源：
 
 ```sh
+cd web
 yarn build
+cd ../server
+go build -o go-admin .
 ```
 
-结果输出至 `server/dist`。默认生产 API 地址为 `/api`，在 `web/.env` 配置。
+yarn build 会先执行 Vue/TypeScript 检查，再输出到 server/dist。部署以下内容到同一运行目录：
 
-在 server 目录检查并构建后端：
+```text
+app/
+├── go-admin        # Windows 为相应的 exe 文件
+├── config.yaml
+└── dist/
+```
+
+从该目录执行 `./go-admin --config config.yaml`，Windows 可使用 `.\go-admin.exe --config config.yaml`。默认访问 `http://服务器:8080/admin/`。配置中的数据库和 Redis 地址应是部署环境能访问的地址。
+
+前端环境变量在构建时写入产物，修改运行时 YAML 不会改变前端 API URL；更改前端地址需要重新构建。
+
+### Docker 部署
+
+Dockerfile 按前端构建 → Go 构建 → 最小运行镜像三个阶段执行，从 npm 和 Go 模块仓库获取已发布依赖。只需要当前项目目录，不依赖本地维护环境或额外构建上下文。运行目录为 /app，包含 dist 和 config.yaml。
+
+从项目根目录执行：
 
 ```sh
-go test ./...
-go build -o go-admin-server .
+docker build -t my-admin:local .
+docker run -d --name my-admin -p 8080:8080 my-admin:local
 ```
 
-Windows 使用 `go build -o go-admin-server.exe .`。部署时一起放置可执行文件、config.yaml 和 dist，生产 dev=false，并从该目录运行服务。
+镜像默认复制 server/config.yaml，构建前填写部署配置及随机 JWT 密钥；需要运行时替换时，将自己的配置文件挂载到 /app/config.yaml，并确保容器用户有读取权限。EXPOSE 只是声明，发布端口仍需要 -p；若配置改了容器监听端口，映射也需相应修改。
 
-默认后台访问地址为 `http://服务器:8080/admin/`。
-## 全局服务配置与 CORS
+## 升级与日常开发
 
-`server/main.go` 在 `admin.Run()` 前调用 `admin.ConfigureEngine()` 配置 CORS。框架不再内置 CORS 中间件，允许来源、请求头等策略由项目控制。当前模板沿用允许所有来源并允许 Authorization 请求头的设置；限制来源时，将 `AllowAllOrigins` 改为 false 并设置 `AllowOrigins`。
+后端通过 go get 更新框架，前端通过 yarn add 更新公共包，然后重新构建应用。业务模块、已生成页面和 settings/init.go 由本项目维护，不会随依赖升级自动覆盖。
 
-也可以在同一回调中配置可信代理或添加其他全局中间件。回调按注册顺序执行，返回错误会停止启动；回调直接注册的路由不自动鉴权、不参与 API 同步。业务路由继续在模块中注册。
+多实例保持数据库、Redis 和 JWT 密钥一致；同一数据库在各实例配置中的连接标识也应一致，避免缓存命名空间分离。任务业务自行保证幂等。
 
-## 节点监控
-
-启动新版后在“系统运维 → 节点监控”查看节点；普通角色需分配该菜单及 `/sys_monitor/list` 接口权限。首次采集可能需要几秒。列表可搜索主机/节点名称，支持状态筛选、列显示、详情和短期 CPU 趋势。自动刷新每 5 秒执行，页面隐藏或离开后暂停；请求失败暂停刷新，手动重试。
-
-可在启动 YAML 的 `server` 下添加 `node_name: "admin-01"`，或设置 `MYAPP_SERVER_NODE_NAME`。每个进程生成独立实例 ID，重启不会覆盖旧进程记录。多实例共用 Redis 和数据库命名空间，超过 20 秒无上报标记离线，10 分钟后移除。
-
-机器资源按操作系统可见范围展示，容器场景不代表容器配额；磁盘为运行目录所在卷。进程 CPU 单核满载为 100%，可能超过 100%。本功能只提供实时快照及当前页面短趋势，不保存历史、不开放 pprof。
+正式部署前关闭 server.dev，修改初始密码，检查数据库连接、CORS 和 API 地址。不要把实际生产密码或签名密钥提交到公共仓库。

@@ -3,9 +3,8 @@ module github.com/Gary-Yez/go-admin-template
 go 1.25.5
 
 require (
-	github.com/Gary-Yez/go-admin v0.11.1
+	github.com/Gary-Yez/go-admin v1.0.1
 	github.com/gin-gonic/gin v1.11.0
-	gorm.io/gorm v1.31.1
 )
 
 require (
@@ -19,6 +18,7 @@ require (
 	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/crypto v0.46.0 // indirect
+	gorm.io/gorm v1.31.1 // indirect
 )
 
 require (

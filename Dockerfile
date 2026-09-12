@@ -3,9 +3,7 @@
 FROM node:22-bookworm-slim AS web-build
 WORKDIR /build/web
 COPY web/package.json web/yarn.lock ./
-COPY --from=go-admin-web /package.json /go-admin-web/package.json
-COPY --from=go-admin-web /src /go-admin-web/src
-RUN yarn install --frozen-lockfile
+RUN yarn install --non-interactive
 COPY web/ ./
 RUN yarn build
 
@@ -13,9 +11,9 @@ FROM golang:1.25.5-alpine AS server-build
 WORKDIR /build/server
 # 前端构建完成后，再开始后端构建。
 COPY --from=web-build /build/server/dist ./dist
-COPY server/go.mod server/go.sum ./
-RUN go mod download
+# 使用发布的 Go 依赖，不依赖本地工作区。
 COPY server/ ./
+RUN go mod tidy
 RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -ldflags="-s -w" -o /out/go-admin .
 
 FROM alpine:3.22 AS runtime

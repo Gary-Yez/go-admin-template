@@ -1,5 +1,4 @@
-import {resolve} from 'node:path'
-import { defineConfig, searchForWorkspaceRoot } from 'vite'
+import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 // https://vite.dev/config/
 export default defineConfig({
@@ -17,11 +16,7 @@ export default defineConfig({
     exclude: ["@gary-yez/go-admin-web"],
     include: ["vue", "pinia", "vue-router", "element-plus", "element-plus/es/locale/lang/zh-cn", "@element-plus/icons-vue", "axios", "nprogress", "echarts", "highlight.js", "dayjs"],
   },
-  resolve: {dedupe: ["vue", "pinia", "vue-router", "element-plus", "axios"]},
-  // 本地维护脚本传入源码目录，普通用户无需配置。
-  server: process.env.GO_ADMIN_WEB_SOURCE ? {
-    fs: {allow: [searchForWorkspaceRoot(process.cwd()), resolve(process.env.GO_ADMIN_WEB_SOURCE)]},
-  } : undefined,
+  resolve: {preserveSymlinks: true, dedupe: ["vue", "pinia", "vue-router", "element-plus", "axios"]},
   base:"./",
   build: {
     outDir: '../server/dist',

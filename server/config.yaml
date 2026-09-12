@@ -7,7 +7,7 @@ server:
   admin_prefix: "/admin"
   api_prefix: "/api"
 jwt:
-  secret: "DO3QJQCMS5WEKGN4VPBCOCMWDTAN5BKSDYV3UVRGQOUJHXDIK3TW" # 自动随机生成；多实例须使用相同密钥，修改后重启生效
+  secret: "" # 必须填写至少 32 字节的随机密钥；多实例使用相同密钥
 database:
   driver: "mysql" # mysql / postgres
   host: "127.0.0.1"
