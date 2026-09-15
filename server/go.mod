@@ -3,7 +3,7 @@ module github.com/Gary-Yez/go-admin-template
 go 1.25.5
 
 require (
-	github.com/Gary-Yez/go-admin v1.0.6
+	github.com/Gary-Yez/go-admin v1.0.7
 	github.com/gin-gonic/gin v1.11.0
 )
 
