@@ -7,6 +7,10 @@ createAdminApp({
     apiBaseURL: import.meta.env.VITE_API_BASE_URL,
     dev: import.meta.env.DEV,
     pages,
+    // 自定义配置分组布局，未声明的分组使用内置布局。
+    configLayouts: [
+        // {title: '业务设置', groups: ['业务设置'], component: BusinessSettingsLayout},
+    ],
     requestHooks: {
         // 按需启用，支持 async；context 提供 pinia、router、dev。
         // beforeRequest(config, context) {

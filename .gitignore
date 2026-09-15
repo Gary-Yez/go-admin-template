@@ -2,3 +2,5 @@
 ./web/node_modules
 ./server/dist
 ./server/config.dev.yaml
+./server/uploads.multipart
+./server/uploads
