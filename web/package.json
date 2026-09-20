@@ -14,7 +14,7 @@
     "pinia": "^2.2.5",
     "vue": "^3.5.12",
     "vue-router": "^4.4.5",
-    "@gary-yez/go-admin-web": "1.0.8"
+    "@gary-yez/go-admin-web": "1.0.9"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "6.0.8",
