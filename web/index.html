@@ -6,9 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title></title>
     <script>
-        // 解决路由跳转问题
-        if (!location.pathname.endsWith("/")){
-            location.href = location.href + "/"
+        // 相对资源需要目录入口；保留查询参数、哈希路由和显式 index.html 入口。
+        if (!location.pathname.endsWith("/") && !location.pathname.endsWith("/index.html")) {
+            const url = new URL(location.href)
+            url.pathname += "/"
+            location.replace(url.href)
         }
     </script>
   </head>
