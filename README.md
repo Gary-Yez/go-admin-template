@@ -109,11 +109,16 @@ database:
   password: "your_password"
   name: "your_database"
   sslmode: "disable"
+  max_idle_conns: 10 # 最大空闲连接数；0 表示不保留空闲连接
+  max_open_conns: 50 # 每个实例的最大总连接数；0 表示不限制
+  conn_max_lifetime: "1h" # 连接最长复用时间；0s 表示不限制
 redis:
   host: ""
   port: "6379"
   db: 0
 ```
+
+连接池参数省略时默认使用 `10 / 50 / 1h`，修改后重启生效。时长可写 `30m`、`1h`；参数不能为负数，总连接数有上限时空闲连接数不能超过它。最大连接数按每个后端实例计算，多实例部署需合并考虑数据库连接预算。
 
 这是字段说明片段，**不要用它覆盖完整配置并删掉 jwt.secret**。PostgreSQL 改为 driver: postgres、对应端口和连接参数。开发使用 dev: true，正式部署关闭。Redis host 留空适用于单实例，多实例使用同一 Redis。
 

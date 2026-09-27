@@ -16,6 +16,9 @@ database:
   password: ""
   name: ""
   sslmode: "disable" # PostgreSQL TLS 模式；MySQL 忽略
+  max_idle_conns: 10 # 最大空闲连接数；0 表示不保留空闲连接
+  max_open_conns: 50 # 每个实例的最大总连接数；0 表示不限制
+  conn_max_lifetime: "1h" # 连接最长复用时间；0s 表示不限制
 redis:
   host: "" # 留空时使用内存缓存
   port: "6379"
